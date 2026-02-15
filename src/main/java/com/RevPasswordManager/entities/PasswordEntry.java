@@ -1,4 +1,4 @@
-package entities;
+package com.RevPasswordManager.entities;
 
 import jakarta.persistence.*;
 import lombok.Data;

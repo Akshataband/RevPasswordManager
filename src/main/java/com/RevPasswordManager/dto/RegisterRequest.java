@@ -1,6 +1,8 @@
-package dto;
+package com.RevPasswordManager.dto;
 
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class RegisterRequest {
@@ -9,4 +11,7 @@ public class RegisterRequest {
     private String email;
     private String password;
     private String phone;
+
+    private List<SecurityQuestionRequest> securityQuestions;
+
 }

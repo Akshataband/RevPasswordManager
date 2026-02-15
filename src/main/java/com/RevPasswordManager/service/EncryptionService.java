@@ -1,4 +1,4 @@
-package service;
+package com.RevPasswordManager.service;
 
 import org.springframework.stereotype.Service;
 import javax.crypto.Cipher;

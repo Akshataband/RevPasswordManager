@@ -1,5 +1,5 @@
-package repository;
-import entities.PasswordEntry;
+package com.RevPasswordManager.repository;
+import com.RevPasswordManager.entities.PasswordEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 

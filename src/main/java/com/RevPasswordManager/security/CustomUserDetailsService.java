@@ -1,9 +1,9 @@
-package security;
+package com.RevPasswordManager.security;
 
-import entities.User;
+import com.RevPasswordManager.entities.User;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
-import repository.UserRepository;
+import com.RevPasswordManager.repository.UserRepository;
 
 import java.util.Collections;
 

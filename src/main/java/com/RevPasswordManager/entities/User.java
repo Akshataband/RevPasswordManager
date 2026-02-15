@@ -1,11 +1,12 @@
-package entities;
+package com.RevPasswordManager.entities;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Builder
 @Entity
 @Table(name = "users")
 @Data

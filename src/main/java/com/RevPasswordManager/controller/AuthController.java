@@ -1,9 +1,9 @@
-package controller;
-import dto.AuthResponse;
-import dto.LoginRequest;
-import dto.RegisterRequest;
+package com.RevPasswordManager.controller;
+import com.RevPasswordManager.dto.AuthResponse;
+import com.RevPasswordManager.dto.LoginRequest;
+import com.RevPasswordManager.dto.RegisterRequest;
 import org.springframework.web.bind.annotation.*;
-import service.AuthService;
+import com.RevPasswordManager.service.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")

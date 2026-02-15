@@ -1,12 +1,13 @@
-package service;
+package com.RevPasswordManager.service;
 
-import dto.*;
-import org.springframework.security.core.userdetails.User;
+import com.RevPasswordManager.dto.AuthResponse;
+import com.RevPasswordManager.dto.LoginRequest;
+import com.RevPasswordManager.dto.RegisterRequest;
+import com.RevPasswordManager.entities.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import repository.UserRepository;
-import security.JwtService;
-
+import com.RevPasswordManager.repository.UserRepository;
+import com.RevPasswordManager.security.JwtService;
 
 @Service
 public class AuthService {
@@ -49,4 +50,6 @@ public class AuthService {
 
         return new AuthResponse(token);
     }
+
+
 }

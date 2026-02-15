@@ -1,4 +1,4 @@
-package security;
+package com.RevPasswordManager.security;
 import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 

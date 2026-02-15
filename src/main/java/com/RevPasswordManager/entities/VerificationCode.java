@@ -1,17 +1,19 @@
-package entities;
+package com.RevPasswordManager.entities;
 import jakarta.persistence.*;
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
-public class SecurityQuestion {
+public class VerificationCode {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String question;
-    private String answer;
+    private String code;
+    private LocalDateTime expiryTime;
+    private boolean used;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

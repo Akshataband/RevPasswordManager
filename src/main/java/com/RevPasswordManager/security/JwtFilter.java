@@ -1,4 +1,4 @@
-package security;
+package com.RevPasswordManager.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
