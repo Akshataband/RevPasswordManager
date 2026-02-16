@@ -128,7 +128,7 @@ public class PasswordService {
             passwordRepository.save(entry);
         }
     }
-    public SecurityAuditResponse securityAudit(Long userId) {
+    public SecurityAuditResponse securityAudit() {
 
         List<PasswordEntry> entries =
                 passwordRepository.findByUserId(userId);
