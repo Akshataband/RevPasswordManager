@@ -46,9 +46,13 @@ public class PasswordService {
     }
 
 
-    public List<PasswordEntry> getAll(Long userId) {
-        return passwordRepository.findByUserId(userId);
+    public List<PasswordEntry> getAll() {
+
+        User user = getCurrentUser();
+
+        return passwordRepository.findByUserId(user.getId());
     }
+
 
     public void delete(Long id) {
         passwordRepository.deleteById(id);
