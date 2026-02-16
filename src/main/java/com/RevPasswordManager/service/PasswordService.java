@@ -10,6 +10,7 @@ import com.RevPasswordManager.dto.SecurityAuditResponse;
 import com.RevPasswordManager.entities.PasswordEntry;
 import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.util.PasswordStrengthUtil;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.RevPasswordManager.repository.PasswordEntryRepository;
 import com.RevPasswordManager.repository.UserRepository;
@@ -31,10 +32,9 @@ public class PasswordService {
         this.encryptionService = encryptionService;
     }
 
-    public PasswordEntry addPassword(Long userId, PasswordEntry entry) {
+    public PasswordEntry addPassword(PasswordEntry entry) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = getCurrentUser();
 
         entry.setEncryptedPassword(
                 encryptionService.encrypt(entry.getEncryptedPassword())
@@ -44,6 +44,7 @@ public class PasswordService {
 
         return passwordRepository.save(entry);
     }
+
 
     public List<PasswordEntry> getAll(Long userId) {
         return passwordRepository.findByUserId(userId);
@@ -163,6 +164,16 @@ public class PasswordService {
         response.setOldPasswords(old);
 
         return response;
+    }
+
+    private User getCurrentUser() {
+
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
 
