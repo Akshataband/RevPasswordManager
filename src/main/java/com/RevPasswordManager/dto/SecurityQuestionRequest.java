@@ -2,8 +2,10 @@ package com.RevPasswordManager.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class SecurityQuestionRequest {
-    private String question;
-    private String answer;
+
+    private List<QuestionAnswer> questions;
 }

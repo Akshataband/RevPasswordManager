@@ -1,6 +1,7 @@
 package com.RevPasswordManager.controller;
 import com.RevPasswordManager.dto.AuthResponse;
 import com.RevPasswordManager.dto.LoginRequest;
+import com.RevPasswordManager.dto.OtpRequest;
 import com.RevPasswordManager.dto.RegisterRequest;
 import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.service.AuthService;
@@ -24,4 +25,10 @@ public class AuthController {
     public AuthResponse login(@RequestBody LoginRequest request) {
         return authService.login(request);
     }
+
+    @PostMapping("/verify-otp")
+    public AuthResponse verifyOtp(@RequestBody OtpRequest request) {
+        return authService.verifyOtp(request);
+    }
+
 }

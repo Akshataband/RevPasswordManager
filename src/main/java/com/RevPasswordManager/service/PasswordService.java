@@ -11,6 +11,7 @@ import com.RevPasswordManager.entities.PasswordEntry;
 import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.util.PasswordStrengthUtil;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.RevPasswordManager.repository.PasswordEntryRepository;
 import com.RevPasswordManager.repository.UserRepository;
@@ -23,14 +24,22 @@ public class PasswordService {
     private final PasswordEntryRepository passwordRepository;
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
 
     public PasswordService(PasswordEntryRepository passwordRepository,
                            UserRepository userRepository,
-                           EncryptionService encryptionService) {
+                           EncryptionService encryptionService,
+                           org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+
         this.passwordRepository = passwordRepository;
         this.userRepository = userRepository;
         this.encryptionService = encryptionService;
+        this.passwordEncoder = passwordEncoder;
     }
+
+
+
 
     public PasswordEntry addPassword(PasswordEntry entry) {
 
@@ -128,11 +137,12 @@ public class PasswordService {
             passwordRepository.save(entry);
         }
     }
-    public SecurityAuditResponse securityAudit()
-    {
+    public SecurityAuditResponse securityAudit() {
+
+        User user = getCurrentUser();
 
         List<PasswordEntry> entries =
-                passwordRepository.findByUserId(userId);
+                passwordRepository.findByUserId(user.getId());
 
         int weak = 0;
         int reused = 0;
@@ -171,6 +181,7 @@ public class PasswordService {
         return response;
     }
 
+
     private User getCurrentUser() {
 
         String username = SecurityContextHolder.getContext()
@@ -180,6 +191,21 @@ public class PasswordService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
+
+    public String viewPassword(Long id, String masterPassword) {
+
+        User user = getCurrentUser();
+
+        if (!passwordEncoder.matches(masterPassword, user.getPassword())) {
+            throw new RuntimeException("Invalid master password");
+        }
+
+        PasswordEntry entry = passwordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Password not found"));
+
+        return encryptionService.decrypt(entry.getEncryptedPassword());
+    }
+
 
 
 }

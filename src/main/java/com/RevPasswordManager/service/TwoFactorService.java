@@ -1,6 +1,6 @@
 package com.RevPasswordManager.service;
-
 import com.RevPasswordManager.entities.User;
+
 import com.RevPasswordManager.entities.VerificationCode;
 import org.springframework.stereotype.Service;
 import com.RevPasswordManager.repository.VerificationCodeRepository;
@@ -33,4 +33,27 @@ public class TwoFactorService {
 
         return code;
     }
+
+    public boolean verifyCode(User user, String code) {
+
+        VerificationCode verification =
+                repository.findTopByUserOrderByExpiryTimeDesc(user);
+
+        if (verification == null) return false;
+
+        if (verification.isUsed()) return false;
+
+        if (verification.getExpiryTime()
+                .isBefore(LocalDateTime.now()))
+            return false;
+
+        if (!verification.getCode().equals(code)) return false;
+
+        verification.setUsed(true);
+        repository.save(verification);
+
+        return true;
+    }
+
+
 }

@@ -1,42 +1,49 @@
 package com.RevPasswordManager.service;
 
+import com.RevPasswordManager.dto.QuestionAnswer;
 import com.RevPasswordManager.entities.SecurityQuestion;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
+import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.repository.SecurityQuestionRepository;
+import com.RevPasswordManager.repository.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class SecurityQuestionService {
 
-    private final SecurityQuestionRepository repository;
-    private final PasswordEncoder passwordEncoder;
+    private final SecurityQuestionRepository securityQuestionRepository;
+    private final UserRepository userRepository;
 
-    public SecurityQuestionService(SecurityQuestionRepository repository,
-                                   PasswordEncoder passwordEncoder) {
-        this.repository = repository;
-        this.passwordEncoder = passwordEncoder;
+    public SecurityQuestionService(SecurityQuestionRepository securityQuestionRepository,
+                                   UserRepository userRepository) {
+        this.securityQuestionRepository = securityQuestionRepository;
+        this.userRepository = userRepository;
     }
 
-    public void addQuestions(List<SecurityQuestion> questions) {
+    public void addQuestions(List<QuestionAnswer> questions) {
 
-        for (SecurityQuestion q : questions) {
-            q.setAnswer(passwordEncoder.encode(q.getAnswer()));
-            repository.save(q);
+        User user = getCurrentUser();
+
+        for (QuestionAnswer dto : questions) {
+
+            SecurityQuestion question = new SecurityQuestion();
+            question.setQuestion(dto.getQuestion());
+            question.setAnswer(dto.getAnswer());
+            question.setUser(user);
+
+            securityQuestionRepository.save(question);
         }
     }
 
-    public boolean verifyAnswers(Long userId, List<String> answers) {
+    private User getCurrentUser() {
 
-        List<SecurityQuestion> questions = repository.findByUserId(userId);
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
 
-        for (int i = 0; i < questions.size(); i++) {
-            if (!passwordEncoder.matches(answers.get(i), questions.get(i).getAnswer())) {
-                return false;
-            }
-        }
-
-        return true;
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

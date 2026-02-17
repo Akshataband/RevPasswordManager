@@ -16,12 +16,9 @@ public class SecurityQuestionController {
 
     @PostMapping
     public String add(@RequestBody SecurityQuestionRequest request) {
-        service.addQuestions(request.getQuestions());
-        return "Questions added";
-    }
 
-    @PostMapping("/verify")
-    public boolean verify(@RequestBody SecurityQuestionRequest request) {
-        return service.verifyAnswers(request.getAnswers());
+        service.addQuestions(request.getQuestions());
+
+        return "Security questions added successfully";
     }
 }
