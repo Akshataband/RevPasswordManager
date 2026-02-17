@@ -7,4 +7,5 @@ import java.util.List;
 public interface SecurityQuestionRepository extends JpaRepository<SecurityQuestion, Long> {
 
     List<SecurityQuestion> findByUserId(Long userId);
+
 }
