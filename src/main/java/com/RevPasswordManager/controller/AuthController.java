@@ -1,8 +1,5 @@
 package com.RevPasswordManager.controller;
-import com.RevPasswordManager.dto.AuthResponse;
-import com.RevPasswordManager.dto.LoginRequest;
-import com.RevPasswordManager.dto.OtpRequest;
-import com.RevPasswordManager.dto.RegisterRequest;
+import com.RevPasswordManager.dto.*;
 import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.service.AuthService;
 
@@ -29,6 +26,12 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public AuthResponse verifyOtp(@RequestBody OtpRequest request) {
         return authService.verifyOtp(request);
+    }
+
+    @PutMapping("/profile")
+    public String updateProfile(@RequestBody UpdateProfileRequest request) {
+        authService.updateProfile(request);
+        return "Profile updated successfully";
     }
 
 }

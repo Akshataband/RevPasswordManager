@@ -83,6 +83,15 @@ public class AuthService {
         return new AuthResponse(token);
     }
 
+    public void updateProfile(UpdateProfileRequest request) {
+
+        User user = getCurrentUser();
+
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+
+        userRepository.save(user);
+    }
 
 
 }
