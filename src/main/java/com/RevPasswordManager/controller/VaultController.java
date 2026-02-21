@@ -19,4 +19,17 @@ public class VaultController {
     public List<PasswordEntry> getAll() {
         return passwordService.getAll();
     }
+
+    @PostMapping("/view")
+    public ResponseEntity<?> viewPassword(@RequestBody ViewPasswordRequest request,
+                                          @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        String password = passwordService.viewPassword(
+                request.getEntryId(),
+                request.getMasterPassword(),
+                userDetails.getUsername()
+        );
+
+        return ResponseEntity.ok(password);
+    }
 }

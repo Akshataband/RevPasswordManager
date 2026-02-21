@@ -1,31 +1,41 @@
 package com.RevPasswordManager.entities;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Data;
-
+import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
-@Builder
+
 @Entity
-@Table(name = "users")
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
     private String username;
 
     @Column(unique = true)
     private String email;
 
-    private String password;
-    private String phone;
+    private String masterPassword;
+
+    private String phoneNumber;
+
     private boolean twoFactorEnabled;
+
+    // 🔐 New fields for brute force protection
+    private int failedAttempts;
+
+    private boolean accountLocked;
+
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<PasswordEntry> passwordEntries;
