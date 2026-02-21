@@ -1,20 +1,20 @@
 package com.RevPasswordManager.service;
 
 import com.RevPasswordManager.dto.BackupDTO;
+import com.RevPasswordManager.dto.SecurityAuditResponse;
 import com.RevPasswordManager.entities.PasswordEntry;
 import com.RevPasswordManager.entities.User;
+import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.PasswordEntryRepository;
 import com.RevPasswordManager.repository.UserRepository;
 import com.RevPasswordManager.util.PasswordSpecification;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Page;
+
+import java.time.LocalDateTime;
 import java.util.*;
-import com.RevPasswordManager.dto.SecurityAuditResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -25,28 +25,27 @@ public class PasswordService {
     private final EncryptionService encryptionService;
     private final PasswordEncoder passwordEncoder;
 
-    // 🔐 View password after master password verification
+    // ================= VIEW PASSWORD =================
     public String viewPassword(Long entryId, String masterPassword, String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
-        // Verify master password
         if (!passwordEncoder.matches(masterPassword, user.getMasterPassword())) {
-            throw new RuntimeException("Invalid master password");
+            throw new CustomException("Invalid master password");
         }
 
         PasswordEntry entry = passwordEntryRepository.findById(entryId)
-                .orElseThrow(() -> new RuntimeException("Password entry not found"));
+                .orElseThrow(() -> new CustomException("Password entry not found"));
 
-        // Prevent accessing other user's password
         if (!entry.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized access");
+            throw new CustomException("Unauthorized access");
         }
 
         return encryptionService.decrypt(entry.getEncryptedPassword());
     }
 
+    // ================= SEARCH =================
     public Page<PasswordEntry> searchPasswords(
             String search,
             String category,
@@ -54,11 +53,10 @@ public class PasswordService {
             int size,
             String sortBy,
             String direction,
-            String username
-    ) {
+            String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         Sort sort = direction.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
@@ -72,10 +70,11 @@ public class PasswordService {
         );
     }
 
+    // ================= SECURITY AUDIT =================
     public SecurityAuditResponse securityAudit(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         List<PasswordEntry> entries =
                 passwordEntryRepository.findByUserId(user.getId());
@@ -91,7 +90,6 @@ public class PasswordService {
             String decrypted =
                     encryptionService.decrypt(entry.getEncryptedPassword());
 
-            // Weak password check
             if (decrypted.length() < 8) {
                 weak++;
             }
@@ -99,10 +97,9 @@ public class PasswordService {
             passwordMap.put(decrypted,
                     passwordMap.getOrDefault(decrypted, 0) + 1);
 
-            // Old password check (> 90 days)
             if (entry.getCreatedAt() != null &&
                     entry.getCreatedAt().isBefore(
-                            java.time.LocalDateTime.now().minusDays(90))) {
+                            LocalDateTime.now().minusDays(90))) {
                 old++;
             }
         }
@@ -114,10 +111,11 @@ public class PasswordService {
         return new SecurityAuditResponse(weak, reused, old);
     }
 
+    // ================= DASHBOARD =================
     public Map<String, Object> getDashboard(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         List<PasswordEntry> entries =
                 passwordEntryRepository.findByUserId(user.getId());
@@ -135,10 +133,11 @@ public class PasswordService {
         return dashboard;
     }
 
+    // ================= GET ALL =================
     public List<PasswordEntry> getAll(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         return passwordEntryRepository.findByUserId(user.getId());
     }
@@ -147,7 +146,7 @@ public class PasswordService {
     public List<PasswordEntry> exportBackup(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         return passwordEntryRepository.findByUserId(user.getId());
     }
@@ -156,7 +155,7 @@ public class PasswordService {
     public String importBackup(String username, BackupDTO backupDTO) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         for (PasswordEntry entry : backupDTO.getEntries()) {
             entry.setUser(user);
@@ -166,32 +165,35 @@ public class PasswordService {
         return "Backup imported successfully";
     }
 
+    // ================= DELETE =================
     public String deletePassword(Long id, String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         PasswordEntry entry = passwordEntryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Password not found"));
+                .orElseThrow(() -> new CustomException("Password not found"));
 
         if (!entry.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized");
+            throw new CustomException("Unauthorized");
         }
 
         passwordEntryRepository.delete(entry);
 
         return "Password deleted successfully";
     }
+
+    // ================= TOGGLE FAVORITE =================
     public String toggleFavorite(Long id, String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         PasswordEntry entry = passwordEntryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Password not found"));
+                .orElseThrow(() -> new CustomException("Password not found"));
 
         if (!entry.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized");
+            throw new CustomException("Unauthorized");
         }
 
         entry.setFavorite(!entry.isFavorite());
@@ -202,10 +204,11 @@ public class PasswordService {
                 : "Removed from favorite";
     }
 
+    // ================= GET FAVORITES =================
     public List<PasswordEntry> getFavorites(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         return passwordEntryRepository
                 .findByUserIdAndFavoriteTrue(user.getId());

@@ -2,23 +2,20 @@ package com.RevPasswordManager.service;
 
 import com.RevPasswordManager.dto.*;
 import com.RevPasswordManager.entities.User;
-import com.RevPasswordManager.entities.VerificationCode;
+import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.UserRepository;
-import com.RevPasswordManager.repository.VerificationCodeRepository;
 import com.RevPasswordManager.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final VerificationCodeRepository verificationCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -26,11 +23,11 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new CustomException("Username already exists");
         }
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new CustomException("Email already exists");
         }
 
         User user = User.builder()
@@ -38,8 +35,8 @@ public class AuthService {
                 .email(request.getEmail())
                 .masterPassword(passwordEncoder.encode(request.getMasterPassword()))
                 .twoFactorEnabled(false)
-                .failedAttempts(0)
                 .accountLocked(false)
+                .failedAttempts(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -55,10 +52,10 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         if (user.isAccountLocked()) {
-            throw new RuntimeException("Account locked");
+            throw new CustomException("Account is locked");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getMasterPassword())) {
@@ -71,68 +68,33 @@ public class AuthService {
 
             userRepository.save(user);
 
-            throw new RuntimeException("Invalid credentials");
+            throw new CustomException("Invalid credentials");
         }
 
         user.setFailedAttempts(0);
         userRepository.save(user);
 
-        // Generate OTP if 2FA enabled
-        if (user.isTwoFactorEnabled()) {
-            generateOtp(user);
-            return new AuthResponse(null, "OTP sent to email");
-        }
-
         String token = jwtService.generateToken(user.getUsername());
+
         return new AuthResponse(token, "Login successful");
-    }
-
-    // ================= GENERATE OTP =================
-    private void generateOtp(User user) {
-
-        String otp = String.valueOf(100000 + new Random().nextInt(900000));
-
-        VerificationCode code = VerificationCode.builder()
-                .code(otp)
-                .user(user)
-                .expiryTime(LocalDateTime.now().plusMinutes(5))
-                .used(false)
-                .build();
-
-        verificationCodeRepository.save(code);
-
-        System.out.println("OTP: " + otp); // simulate email
     }
 
     // ================= VERIFY OTP =================
     public String verifyOtp(OtpRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        VerificationCode code = verificationCodeRepository
-                .findByUserAndCode(user, request.getOtp())
-                .orElseThrow(() -> new RuntimeException("Invalid OTP"));
-
-        if (code.isUsed()) {
-            throw new RuntimeException("OTP already used");
+        // For now simple simulation
+        if (!"123456".equals(request.getOtp())) {
+            throw new CustomException("Invalid OTP");
         }
 
-        if (code.getExpiryTime().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP expired");
-        }
-
-        code.setUsed(true);
-        verificationCodeRepository.save(code);
-
-        return jwtService.generateToken(user.getUsername());
+        return "OTP verified successfully";
     }
 
     // ================= UPDATE PROFILE =================
     public String updateProfile(UpdateProfileRequest request) {
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -143,33 +105,36 @@ public class AuthService {
         return "Profile updated successfully";
     }
 
+    // ================= CHANGE MASTER PASSWORD =================
     public String changeMasterPassword(
             String username,
             ChangeMasterPasswordRequest request) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         if (!passwordEncoder.matches(
                 request.getCurrentPassword(),
                 user.getMasterPassword())) {
 
-            throw new RuntimeException("Current password is incorrect");
+            throw new CustomException("Current password is incorrect");
         }
 
         user.setMasterPassword(
                 passwordEncoder.encode(request.getNewPassword()));
 
-        user.setUpdatedAt(java.time.LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(user);
 
         return "Master password updated successfully";
     }
+
+    // ================= TOGGLE 2FA =================
     public String toggle2FA(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
         user.setTwoFactorEnabled(!user.isTwoFactorEnabled());
         userRepository.save(user);
