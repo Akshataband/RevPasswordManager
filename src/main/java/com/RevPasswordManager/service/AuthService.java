@@ -166,4 +166,16 @@ public class AuthService {
 
         return "Master password updated successfully";
     }
+    public String toggle2FA(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setTwoFactorEnabled(!user.isTwoFactorEnabled());
+        userRepository.save(user);
+
+        return user.isTwoFactorEnabled()
+                ? "2FA Enabled"
+                : "2FA Disabled";
+    }
 }

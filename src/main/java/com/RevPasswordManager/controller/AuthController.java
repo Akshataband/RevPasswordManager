@@ -59,4 +59,13 @@ public class AuthController {
                 )
         );
     }
+
+    @PutMapping("/toggle-2fa")
+    public ResponseEntity<?> toggle2FA(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                authService.toggle2FA(userDetails.getUsername())
+        );
+    }
 }
