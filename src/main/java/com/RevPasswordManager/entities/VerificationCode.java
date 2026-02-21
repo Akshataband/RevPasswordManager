@@ -1,10 +1,15 @@
 package com.RevPasswordManager.entities;
+
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class VerificationCode {
 
     @Id
@@ -12,10 +17,11 @@ public class VerificationCode {
     private Long id;
 
     private String code;
-    private LocalDateTime expiryTime;
+
     private boolean used;
 
+    private LocalDateTime expiryTime;
+
     @ManyToOne
-    @JoinColumn(name = "user_id")
     private User user;
 }

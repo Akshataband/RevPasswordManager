@@ -1,29 +1,37 @@
 package com.RevPasswordManager.controller;
 
 import com.RevPasswordManager.dto.BackupDTO;
-import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.service.PasswordService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/backup")
+@RequiredArgsConstructor
 public class BackupController {
 
     private final PasswordService passwordService;
 
-    public BackupController(PasswordService passwordService) {
-        this.passwordService = passwordService;
+    // ================= EXPORT =================
+    @GetMapping("/export")
+    public ResponseEntity<?> exportBackup(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.exportBackup(userDetails.getUsername())
+        );
     }
 
-    @GetMapping("/export/{userId}")
-    public BackupDTO export(@PathVariable Long userId) {
-        return passwordService.exportBackup(userId);
-    }
+    // ================= IMPORT =================
+    @PostMapping("/import")
+    public ResponseEntity<?> importBackup(
+            @RequestBody BackupDTO backupDTO,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
 
-    @PostMapping("/import/{userId}")
-    public String importBackup(@PathVariable Long userId,
-                               @RequestBody BackupDTO backup) {
-
-        passwordService.importBackup(userId, backup);
-        return "Backup imported successfully";
+        return ResponseEntity.ok(
+                passwordService.importBackup(userDetails.getUsername(), backupDTO)
+        );
     }
 }

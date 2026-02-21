@@ -3,7 +3,6 @@ package com.RevPasswordManager.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 @Getter
@@ -18,28 +17,15 @@ public class User {
     private Long id;
 
     private String username;
-
-    @Column(unique = true)
     private String email;
-
     private String masterPassword;
+
+    private boolean twoFactorEnabled;
+    private boolean accountLocked;
+    private int failedAttempts;
 
     private String phoneNumber;
 
-    private boolean twoFactorEnabled;
-
-    // 🔐 New fields for brute force protection
-    private int failedAttempts;
-
-    private boolean accountLocked;
-
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<PasswordEntry> passwordEntries;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<SecurityQuestion> securityQuestions;
 }

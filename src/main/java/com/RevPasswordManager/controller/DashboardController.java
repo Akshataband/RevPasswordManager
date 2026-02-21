@@ -1,21 +1,24 @@
 package com.RevPasswordManager.controller;
 
-import com.RevPasswordManager.dto.DashboardResponse;
-import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.service.PasswordService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping("/dashboard")
+@RequiredArgsConstructor
 public class DashboardController {
 
     private final PasswordService passwordService;
 
-    public DashboardController(PasswordService passwordService) {
-        this.passwordService = passwordService;
-    }
+    @GetMapping
+    public ResponseEntity<?> getDashboard(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
 
-    @GetMapping("/{userId}")
-    public DashboardResponse getDashboard(@PathVariable Long userId) {
-        return passwordService.getDashboard(userId);
+        return ResponseEntity.ok(
+                passwordService.getDashboard(userDetails.getUsername())
+        );
     }
 }

@@ -1,35 +1,75 @@
 package com.RevPasswordManager.controller;
 
-import com.RevPasswordManager.entities.PasswordEntry;
+import com.RevPasswordManager.dto.ViewPasswordRequest;
 import com.RevPasswordManager.service.PasswordService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 @RestController
 @RequestMapping("/api/vault")
+@RequiredArgsConstructor
 public class VaultController {
 
     private final PasswordService passwordService;
 
-    public VaultController(PasswordService passwordService) {
-        this.passwordService = passwordService;
-    }
-
+    // ================= GET ALL =================
     @GetMapping
-    public List<PasswordEntry> getAll() {
-        return passwordService.getAll();
+    public ResponseEntity<?> getAll(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.getAll(userDetails.getUsername())
+        );
     }
 
+    // ================= VIEW PASSWORD =================
     @PostMapping("/view")
-    public ResponseEntity<?> viewPassword(@RequestBody ViewPasswordRequest request,
-                                          @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+    public ResponseEntity<?> viewPassword(
+            @RequestBody ViewPasswordRequest request,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
 
-        String password = passwordService.viewPassword(
-                request.getEntryId(),
-                request.getMasterPassword(),
-                userDetails.getUsername()
+        return ResponseEntity.ok(
+                passwordService.viewPassword(
+                        request.getEntryId(),
+                        request.getMasterPassword(),
+                        userDetails.getUsername()
+                )
         );
+    }
 
-        return ResponseEntity.ok(password);
+    // ================= SEARCH =================
+    @GetMapping("/search")
+    public ResponseEntity<?> searchPasswords(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.searchPasswords(
+                        search,
+                        category,
+                        page,
+                        size,
+                        sortBy,
+                        direction,
+                        userDetails.getUsername()
+                )
+        );
+    }
+
+    // ================= SECURITY AUDIT =================
+    @GetMapping("/audit")
+    public ResponseEntity<?> audit(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.securityAudit(userDetails.getUsername())
+        );
     }
 }

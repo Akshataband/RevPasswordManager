@@ -1,37 +1,48 @@
 package com.RevPasswordManager.controller;
+
 import com.RevPasswordManager.dto.*;
-import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import com.RevPasswordManager.dto.UpdateProfileRequest;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
-
+    // ✅ REGISTER
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<AuthResponse> register(
+            @RequestBody RegisterRequest request) {
+
+        return ResponseEntity.ok(authService.register(request));
     }
 
+    // ✅ LOGIN
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<AuthResponse> login(
+            @RequestBody LoginRequest request) {
+
+        return ResponseEntity.ok(authService.login(request));
     }
 
+    // ✅ VERIFY OTP
     @PostMapping("/verify-otp")
-    public AuthResponse verifyOtp(@RequestBody OtpRequest request) {
-        return authService.verifyOtp(request);
+    public ResponseEntity<String> verifyOtp(
+            @RequestBody OtpRequest request) {
+
+        return ResponseEntity.ok(authService.verifyOtp(request));
     }
 
-    @PutMapping("/profile")
-    public String updateProfile(@RequestBody UpdateProfileRequest request) {
-        authService.updateProfile(request);
-        return "Profile updated successfully";
-    }
+    // ✅ UPDATE PROFILE
+    @PutMapping("/update-profile")
+    public ResponseEntity<String> updateProfile(
+            @RequestBody UpdateProfileRequest request) {
 
+        return ResponseEntity.ok(authService.updateProfile(request));
+    }
 }

@@ -1,10 +1,9 @@
 package com.RevPasswordManager.security;
 
 import com.RevPasswordManager.entities.User;
+import com.RevPasswordManager.repository.UserRepository;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
-import com.RevPasswordManager.repository.UserRepository;
-
 
 import java.util.Collections;
 
@@ -27,7 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
-                user.getPassword(),
+                user.getMasterPassword(), // ✅ FIXED HERE
                 Collections.emptyList()
         );
     }
