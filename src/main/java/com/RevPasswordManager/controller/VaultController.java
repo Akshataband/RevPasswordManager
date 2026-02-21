@@ -82,4 +82,14 @@ public class VaultController {
                 passwordService.deletePassword(id, userDetails.getUsername())
         );
     }
+
+    @PutMapping("/{id}/favorite")
+    public ResponseEntity<?> toggleFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.toggleFavorite(id, userDetails.getUsername())
+        );
+    }
 }

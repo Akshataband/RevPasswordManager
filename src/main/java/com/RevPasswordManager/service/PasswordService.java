@@ -182,4 +182,23 @@ public class PasswordService {
 
         return "Password deleted successfully";
     }
+    public String toggleFavorite(Long id, String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        PasswordEntry entry = passwordEntryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Password not found"));
+
+        if (!entry.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        entry.setFavorite(!entry.isFavorite());
+        passwordEntryRepository.save(entry);
+
+        return entry.isFavorite()
+                ? "Marked as favorite"
+                : "Removed from favorite";
+    }
 }
