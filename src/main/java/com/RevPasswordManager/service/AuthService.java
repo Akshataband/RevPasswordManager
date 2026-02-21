@@ -142,4 +142,28 @@ public class AuthService {
 
         return "Profile updated successfully";
     }
+
+    public String changeMasterPassword(
+            String username,
+            ChangeMasterPasswordRequest request) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(
+                request.getCurrentPassword(),
+                user.getMasterPassword())) {
+
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        user.setMasterPassword(
+                passwordEncoder.encode(request.getNewPassword()));
+
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Master password updated successfully";
+    }
 }

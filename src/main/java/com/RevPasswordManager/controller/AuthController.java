@@ -4,6 +4,7 @@ import com.RevPasswordManager.dto.*;
 import com.RevPasswordManager.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import com.RevPasswordManager.dto.UpdateProfileRequest;
 
@@ -44,5 +45,18 @@ public class AuthController {
             @RequestBody UpdateProfileRequest request) {
 
         return ResponseEntity.ok(authService.updateProfile(request));
+    }
+
+    @PutMapping("/change-master-password")
+    public ResponseEntity<?> changeMasterPassword(
+            @RequestBody ChangeMasterPasswordRequest request,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                authService.changeMasterPassword(
+                        userDetails.getUsername(),
+                        request
+                )
+        );
     }
 }
