@@ -201,4 +201,13 @@ public class PasswordService {
                 ? "Marked as favorite"
                 : "Removed from favorite";
     }
+
+    public List<PasswordEntry> getFavorites(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return passwordEntryRepository
+                .findByUserIdAndFavoriteTrue(user.getId());
+    }
 }

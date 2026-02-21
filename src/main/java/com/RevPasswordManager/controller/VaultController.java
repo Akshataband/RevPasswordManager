@@ -92,4 +92,12 @@ public class VaultController {
                 passwordService.toggleFavorite(id, userDetails.getUsername())
         );
     }
+    @GetMapping("/favorites")
+    public ResponseEntity<?> getFavorites(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.getFavorites(userDetails.getUsername())
+        );
+    }
 }
