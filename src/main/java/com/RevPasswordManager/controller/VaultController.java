@@ -72,4 +72,14 @@ public class VaultController {
                 passwordService.securityAudit(userDetails.getUsername())
         );
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletePassword(
+            @PathVariable Long id,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.deletePassword(id, userDetails.getUsername())
+        );
+    }
 }

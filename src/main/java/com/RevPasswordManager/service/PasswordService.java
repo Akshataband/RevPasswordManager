@@ -165,4 +165,21 @@ public class PasswordService {
 
         return "Backup imported successfully";
     }
+
+    public String deletePassword(Long id, String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        PasswordEntry entry = passwordEntryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Password not found"));
+
+        if (!entry.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized");
+        }
+
+        passwordEntryRepository.delete(entry);
+
+        return "Password deleted successfully";
+    }
 }
