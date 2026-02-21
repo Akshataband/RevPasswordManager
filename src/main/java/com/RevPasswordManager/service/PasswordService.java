@@ -1,36 +1,34 @@
 package com.RevPasswordManager.service;
-import java.util.HashMap;
-import java.util.Map;
-import java.time.LocalDateTime;
 
-import com.RevPasswordManager.dto.BackupDTO;
-import com.RevPasswordManager.dto.DashboardResponse;
-import com.RevPasswordManager.dto.PasswordBackupItem;
-import com.RevPasswordManager.dto.SecurityAuditResponse;
+import com.RevPasswordManager.dto.*;
 import com.RevPasswordManager.entities.PasswordEntry;
 import com.RevPasswordManager.entities.User;
+import com.RevPasswordManager.repository.PasswordEntryRepository;
+import com.RevPasswordManager.repository.UserRepository;
 import com.RevPasswordManager.util.PasswordStrengthUtil;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.RevPasswordManager.repository.PasswordEntryRepository;
-import com.RevPasswordManager.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
+@Transactional
 public class PasswordService {
 
     private final PasswordEntryRepository passwordRepository;
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
-
+    private final PasswordEncoder passwordEncoder;
 
     public PasswordService(PasswordEntryRepository passwordRepository,
                            UserRepository userRepository,
                            EncryptionService encryptionService,
-                           org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder) {
 
         this.passwordRepository = passwordRepository;
         this.userRepository = userRepository;
@@ -38,8 +36,7 @@ public class PasswordService {
         this.passwordEncoder = passwordEncoder;
     }
 
-
-
+    // ========================= ADD PASSWORD =========================
 
     public PasswordEntry addPassword(PasswordEntry entry) {
 
@@ -54,6 +51,7 @@ public class PasswordService {
         return passwordRepository.save(entry);
     }
 
+    // ========================= GET ALL =========================
 
     public List<PasswordEntry> getAll() {
 
@@ -62,13 +60,30 @@ public class PasswordService {
         return passwordRepository.findByUserId(user.getId());
     }
 
+    // ========================= DELETE =========================
 
     public void delete(Long id) {
-        passwordRepository.deleteById(id);
-    }
-    public DashboardResponse getDashboard(Long userId) {
 
-        List<PasswordEntry> list = passwordRepository.findByUserId(userId);
+        User user = getCurrentUser();
+
+        PasswordEntry entry = passwordRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Password not found"));
+
+        if (!entry.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access");
+        }
+
+        passwordRepository.delete(entry);
+    }
+
+    // ========================= DASHBOARD =========================
+
+    public DashboardResponse getDashboard() {
+
+        User user = getCurrentUser();
+
+        List<PasswordEntry> list =
+                passwordRepository.findByUserId(user.getId());
 
         int total = list.size();
         int weak = 0;
@@ -76,14 +91,14 @@ public class PasswordService {
 
         for (PasswordEntry entry : list) {
 
-            String decrypted = encryptionService.decrypt(entry.getEncryptedPassword());
+            String decrypted =
+                    encryptionService.decrypt(entry.getEncryptedPassword());
 
             if (PasswordStrengthUtil.isWeak(decrypted)) {
                 weak++;
             }
 
-            if (entry.isFavorite())
-            {
+            if (entry.isFavorite()) {
                 favorite++;
             }
         }
@@ -91,10 +106,13 @@ public class PasswordService {
         return new DashboardResponse(total, weak, favorite);
     }
 
-    public BackupDTO exportBackup(Long userId) {
+    // ========================= EXPORT BACKUP =========================
 
+    public BackupDTO exportBackup() {
+
+        User user = getCurrentUser();
         List<PasswordEntry> entries =
-                passwordRepository.findByUserId(userId);
+                passwordRepository.findByUserId(user.getId());
 
         List<PasswordBackupItem> items = entries.stream().map(entry -> {
 
@@ -117,10 +135,11 @@ public class PasswordService {
         return backup;
     }
 
-    public void importBackup(Long userId, BackupDTO backup) {
+    // ========================= IMPORT BACKUP =========================
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public void importBackup(BackupDTO backup) {
+
+        User user = getCurrentUser();
 
         for (PasswordBackupItem item : backup.getItems()) {
 
@@ -137,6 +156,9 @@ public class PasswordService {
             passwordRepository.save(entry);
         }
     }
+
+    // ========================= SECURITY AUDIT =========================
+
     public SecurityAuditResponse securityAudit() {
 
         User user = getCurrentUser();
@@ -181,16 +203,7 @@ public class PasswordService {
         return response;
     }
 
-
-    private User getCurrentUser() {
-
-        String username = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
-
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-    }
+    // ========================= VIEW PASSWORD =========================
 
     public String viewPassword(Long id, String masterPassword) {
 
@@ -203,9 +216,22 @@ public class PasswordService {
         PasswordEntry entry = passwordRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Password not found"));
 
+        if (!entry.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized access");
+        }
+
         return encryptionService.decrypt(entry.getEncryptedPassword());
     }
 
+    // ========================= CURRENT USER =========================
 
+    private User getCurrentUser() {
 
+        String username = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getName();
+
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
 }
