@@ -9,5 +9,4 @@ public class RevPasswordManagerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(RevPasswordManagerApplication.class, args);
 	}
-
 }
