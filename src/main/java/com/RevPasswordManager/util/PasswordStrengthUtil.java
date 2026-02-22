@@ -1,14 +1,23 @@
 package com.RevPasswordManager.util;
+
 public class PasswordStrengthUtil {
 
-    public static boolean isWeak(String password) {
+    public enum Strength {
+        WEAK,
+        MEDIUM,
+        STRONG
+    }
 
-        if (password.length() < 8) return true;
+    public static Strength checkStrength(String password) {
+
+        if (password == null || password.length() < 8) {
+            return Strength.WEAK;
+        }
 
         boolean hasUpper = password.matches(".*[A-Z].*");
         boolean hasLower = password.matches(".*[a-z].*");
         boolean hasNumber = password.matches(".*[0-9].*");
-        boolean hasSpecial = password.matches(".*[!@#$%^&*()].*");
+        boolean hasSpecial = password.matches(".*[^a-zA-Z0-9].*");
 
         int score = 0;
 
@@ -17,6 +26,9 @@ public class PasswordStrengthUtil {
         if (hasNumber) score++;
         if (hasSpecial) score++;
 
-        return score < 3;
+        if (score <= 2) return Strength.WEAK;
+        if (score == 3) return Strength.MEDIUM;
+
+        return Strength.STRONG;
     }
 }

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "users")
 public class User {
 
     @Id
@@ -29,6 +30,10 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String securityQuestion;
+    private String securityAnswer;
+
     @Enumerated(EnumType.STRING)
     private Role role;
+
 }

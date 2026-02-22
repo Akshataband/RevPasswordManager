@@ -1,28 +1,24 @@
 package com.RevPasswordManager.controller;
 
-import com.RevPasswordManager.dto.GeneratorRequest;
-import com.RevPasswordManager.security.GeneratorService;
+import com.RevPasswordManager.dto.PasswordGeneratorRequest;
+import com.RevPasswordManager.service.PasswordService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/generator")
+@RequestMapping("/api")
+@RequiredArgsConstructor
 public class GeneratorController {
 
-    private final GeneratorService generatorService;
+    private final PasswordService passwordService;
 
-    public GeneratorController(GeneratorService generatorService) {
-        this.generatorService = generatorService;
-    }
+    @PostMapping("/generator")
+    public ResponseEntity<String> generate(
+            @RequestBody PasswordGeneratorRequest request) {
 
-    @PostMapping
-    public String generate(@RequestBody GeneratorRequest request) {
+        String password = passwordService.generatePassword(request);
 
-        return generatorService.generate(
-                request.getLength(),
-                request.isIncludeUppercase(),
-                request.isIncludeLowercase(),
-                request.isIncludeNumbers(),
-                request.isIncludeSpecial()
-        );
+        return ResponseEntity.ok(password);
     }
 }

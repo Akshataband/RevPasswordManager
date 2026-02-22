@@ -1,10 +1,14 @@
 package com.RevPasswordManager.controller;
 
+import com.RevPasswordManager.dto.CreatePasswordRequest;
+import com.RevPasswordManager.dto.UpdatePasswordRequest;
 import com.RevPasswordManager.dto.ViewPasswordRequest;
 import com.RevPasswordManager.service.PasswordService;
 import lombok.RequiredArgsConstructor;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -82,14 +86,33 @@ public class VaultController {
                 passwordService.deletePassword(id, userDetails.getUsername())
         );
     }
+    @PostMapping
+    public ResponseEntity<String> addPassword(
+            @RequestBody CreatePasswordRequest request,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.addPassword(request, userDetails.getUsername())
+        );
+    }
 
     @PutMapping("/{id}/favorite")
-    public ResponseEntity<?> toggleFavorite(
+    public ResponseEntity<?> addToFavorite(
             @PathVariable Long id,
             @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
 
         return ResponseEntity.ok(
-                passwordService.toggleFavorite(id, userDetails.getUsername())
+                passwordService.addToFavorite(id, userDetails.getUsername())
+        );
+    }
+
+    @DeleteMapping("/{id}/favorite")
+    public ResponseEntity<?> removeFromFavorite(
+            @PathVariable Long id,
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+
+        return ResponseEntity.ok(
+                passwordService.removeFromFavorite(id, userDetails.getUsername())
         );
     }
     @GetMapping("/favorites")
@@ -99,5 +122,17 @@ public class VaultController {
         return ResponseEntity.ok(
                 passwordService.getFavorites(userDetails.getUsername())
         );
+    }
+    @PutMapping("/vault/{id}")
+    public ResponseEntity<String> updatePassword(
+            @PathVariable Long id,
+            @RequestBody UpdatePasswordRequest request,
+            org.springframework.security.core.Authentication authentication) {
+
+        String username = authentication.getName();
+
+        String response = passwordService.updatePassword(id, request, username);
+
+        return ResponseEntity.ok(response);
     }
 }

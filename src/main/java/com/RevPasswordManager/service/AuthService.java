@@ -1,6 +1,7 @@
 package com.RevPasswordManager.service;
 
 import com.RevPasswordManager.dto.*;
+import com.RevPasswordManager.entities.Role;
 import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.UserRepository;
@@ -34,6 +35,7 @@ public class AuthService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .masterPassword(passwordEncoder.encode(request.getMasterPassword()))
+                .role(Role.USER) // 🔥 important
                 .twoFactorEnabled(false)
                 .accountLocked(false)
                 .failedAttempts(0)
@@ -45,7 +47,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getUsername());
 
-        return new AuthResponse(token);
+        return new AuthResponse(token, "Registration successful");
     }
 
     // ================= LOGIN =================
@@ -55,10 +57,12 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException("User not found"));
 
         if (user.isAccountLocked()) {
-            throw new CustomException("Account is locked");
+            throw new CustomException("Account is locked due to multiple failed attempts");
         }
 
-        if (!passwordEncoder.matches(request.getMasterPassword(), user.getMasterPassword())) {
+        if (!passwordEncoder.matches(
+                request.getMasterPassword(),
+                user.getMasterPassword())) {
 
             user.setFailedAttempts(user.getFailedAttempts() + 1);
 
@@ -72,16 +76,17 @@ public class AuthService {
         }
 
         user.setFailedAttempts(0);
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
         String token = jwtService.generateToken(user.getUsername());
-        return new AuthResponse(token);
+
+        return new AuthResponse(token, "Login successful");
     }
 
     // ================= VERIFY OTP =================
     public String verifyOtp(OtpRequest request) {
 
-        // For now simple simulation
         if (!"123456".equals(request.getOtp())) {
             throw new CustomException("Invalid OTP");
         }
@@ -90,9 +95,9 @@ public class AuthService {
     }
 
     // ================= UPDATE PROFILE =================
-    public String updateProfile(UpdateProfileRequest request) {
+    public String updateProfile(String username, UpdateProfileRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
         user.setEmail(request.getEmail());
@@ -105,30 +110,24 @@ public class AuthService {
     }
 
     // ================= CHANGE MASTER PASSWORD =================
-    public String changeMasterPassword(
-            String username,
-            ChangeMasterPasswordRequest request) {
+    public String changeMasterPassword(String username,
+                                       ChangeMasterPasswordRequest request) {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        if (!passwordEncoder.matches(
-                request.getCurrentPassword(),
+        if (!passwordEncoder.matches(request.getOldPassword(),
                 user.getMasterPassword())) {
-
-            throw new CustomException("Current password is incorrect");
+            throw new CustomException("Old master password is incorrect");
         }
 
         user.setMasterPassword(
                 passwordEncoder.encode(request.getNewPassword()));
 
-        user.setUpdatedAt(LocalDateTime.now());
-
         userRepository.save(user);
 
-        return "Master password updated successfully";
+        return "Master password changed successfully";
     }
-
     // ================= TOGGLE 2FA =================
     public String toggle2FA(String username) {
 
@@ -136,10 +135,47 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException("User not found"));
 
         user.setTwoFactorEnabled(!user.isTwoFactorEnabled());
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
         return user.isTwoFactorEnabled()
                 ? "2FA Enabled"
                 : "2FA Disabled";
+    }
+
+    public String verifySecurityAnswer(VerifySecurityAnswerRequest request) {
+
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        if (user.getSecurityAnswer() == null) {
+            throw new CustomException("Security question not set");
+        }
+
+        if (!passwordEncoder.matches(request.getAnswer(),
+                user.getSecurityAnswer())) {
+            throw new CustomException("Incorrect security answer");
+        }
+
+        return "Security answer verified successfully";
+    }
+    public String resetMasterPassword(ResetMasterPasswordRequest request) {
+
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        if (request.getNewMasterPassword() == null
+                || request.getNewMasterPassword().isBlank()) {
+            throw new CustomException("New master password cannot be empty");
+        }
+
+        user.setMasterPassword(
+                passwordEncoder.encode(request.getNewMasterPassword()));
+
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Master password reset successfully";
     }
 }

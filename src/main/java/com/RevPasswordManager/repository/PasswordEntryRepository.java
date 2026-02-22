@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PasswordEntryRepository
         extends JpaRepository<PasswordEntry, Long>,
@@ -15,4 +16,7 @@ public interface PasswordEntryRepository
 
     // Favorites
     List<PasswordEntry> findByUserIdAndFavoriteTrue(Long userId);
+
+    List<PasswordEntry> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Optional<PasswordEntry> findByIdAndUserId(Long id, Long userId);
 }

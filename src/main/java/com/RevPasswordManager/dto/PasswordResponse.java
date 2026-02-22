@@ -1,39 +1,22 @@
-package com.RevPasswordManager.entities;
+package com.RevPasswordManager.dto;
 
-import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class PasswordEntry {
+public class PasswordResponse {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String accountName;
     private String website;
     private String username;
-
-    private String encryptedPassword;
-
     private String category;
-
-    @Column(length = 1000)
     private String notes;
-
     private boolean favorite;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
 }
