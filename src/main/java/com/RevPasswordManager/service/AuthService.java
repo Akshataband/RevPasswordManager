@@ -45,7 +45,7 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getUsername());
 
-        return new AuthResponse(token, "User registered successfully");
+        return new AuthResponse(token);
     }
 
     // ================= LOGIN =================
@@ -58,7 +58,7 @@ public class AuthService {
             throw new CustomException("Account is locked");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getMasterPassword())) {
+        if (!passwordEncoder.matches(request.getMasterPassword(), user.getMasterPassword())) {
 
             user.setFailedAttempts(user.getFailedAttempts() + 1);
 
@@ -75,8 +75,7 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtService.generateToken(user.getUsername());
-
-        return new AuthResponse(token, "Login successful");
+        return new AuthResponse(token);
     }
 
     // ================= VERIFY OTP =================

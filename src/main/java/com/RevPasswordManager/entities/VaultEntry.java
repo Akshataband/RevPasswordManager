@@ -1,9 +1,10 @@
+package com.RevPasswordManager.entities;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.security.core.userdetails.User;
-
 import java.time.LocalDateTime;
+import com.RevPasswordManager.entities.User;
 
 @Entity
 @Table(name = "vault_entries")
@@ -31,5 +32,5 @@ public class VaultEntry {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private User user;   // ✅ This must be your entity User
 }

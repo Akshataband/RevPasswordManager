@@ -79,6 +79,10 @@ public class PasswordService {
         List<PasswordEntry> entries =
                 passwordEntryRepository.findByUserId(user.getId());
 
+        if (entries == null || entries.isEmpty()) {
+            return new SecurityAuditResponse(0, 0, 0);
+        }
+
         int weak = 0;
         int reused = 0;
         int old = 0;
@@ -87,8 +91,17 @@ public class PasswordService {
 
         for (PasswordEntry entry : entries) {
 
-            String decrypted =
-                    encryptionService.decrypt(entry.getEncryptedPassword());
+            if (entry.getEncryptedPassword() == null) {
+                continue;
+            }
+
+            String decrypted;
+
+            try {
+                decrypted = encryptionService.decrypt(entry.getEncryptedPassword());
+            } catch (Exception e) {
+                continue; // skip corrupted entry
+            }
 
             if (decrypted.length() < 8) {
                 weak++;
@@ -110,7 +123,6 @@ public class PasswordService {
 
         return new SecurityAuditResponse(weak, reused, old);
     }
-
     // ================= DASHBOARD =================
     public Map<String, Object> getDashboard(String username) {
 

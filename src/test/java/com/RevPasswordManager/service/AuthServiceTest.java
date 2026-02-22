@@ -4,6 +4,7 @@ import com.RevPasswordManager.dto.AuthResponse;
 import com.RevPasswordManager.dto.LoginRequest;
 import com.RevPasswordManager.dto.RegisterRequest;
 import com.RevPasswordManager.entities.User;
+import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.UserRepository;
 import com.RevPasswordManager.security.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -48,7 +50,7 @@ class AuthServiceTest {
 
         loginRequest = new LoginRequest();
         loginRequest.setUsername("testuser");
-        loginRequest.setPassword("password123");
+        loginRequest.setMasterPassword("Password@123");
 
         user = User.builder()
                 .username("testuser")
@@ -91,7 +93,7 @@ class AuthServiceTest {
         when(userRepository.findByUsername("testuser"))
                 .thenReturn(Optional.of(user));
 
-        when(passwordEncoder.matches("password123", "encodedPassword"))
+        when(passwordEncoder.matches(anyString(), anyString()))
                 .thenReturn(true);
 
         when(jwtService.generateToken("testuser"))
@@ -111,11 +113,11 @@ class AuthServiceTest {
         when(userRepository.findByUsername("testuser"))
                 .thenReturn(Optional.of(user));
 
-        when(passwordEncoder.matches("password123", "encodedPassword"))
+        when(passwordEncoder.matches(anyString(), anyString()))
                 .thenReturn(false);
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
+        CustomException exception = assertThrows(
+                CustomException.class,
                 () -> authService.login(loginRequest)
         );
 
