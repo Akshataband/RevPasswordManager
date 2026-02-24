@@ -29,25 +29,35 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleValidationException(
             MethodArgumentNotValidException ex) {
 
+        Map<String, Object> error = new HashMap<>();
         Map<String, String> validationErrors = new HashMap<>();
 
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                validationErrors.put(error.getField(), error.getDefaultMessage())
-        );
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(fieldError ->
+                        validationErrors.put(
+                                fieldError.getField(),
+                                fieldError.getDefaultMessage()
+                        )
+                );
 
-        return new ResponseEntity<>(validationErrors, HttpStatus.BAD_REQUEST);
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("errors", validationErrors);
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     // ================= GENERAL EXCEPTION =================
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneralException(Exception ex) {
 
-        ex.printStackTrace();   // 🔥 VERY IMPORTANT (show real error)
+        ex.printStackTrace();
 
         Map<String, Object> error = new HashMap<>();
         error.put("timestamp", LocalDateTime.now());
         error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        error.put("error", ex.getMessage());   // show real message
+        error.put("error", ex.getMessage());
 
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

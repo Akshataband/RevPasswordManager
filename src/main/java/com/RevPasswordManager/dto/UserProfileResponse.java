@@ -1,12 +1,14 @@
 package com.RevPasswordManager.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 @Data
-public class UpdateProfileRequest {
+@Builder
+public class UserProfileResponse {
 
     private String username;
-    private String name;
     private String email;
     private String phoneNumber;
+    private boolean twoFactorEnabled;
 }

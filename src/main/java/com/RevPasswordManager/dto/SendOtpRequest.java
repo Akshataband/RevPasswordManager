@@ -3,8 +3,7 @@ package com.RevPasswordManager.dto;
 import lombok.Data;
 
 @Data
-public class OtpRequest {
-
+public class SendOtpRequest {
     private String username;
-    private String code;
+
 }

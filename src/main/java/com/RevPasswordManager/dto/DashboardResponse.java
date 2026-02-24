@@ -1,13 +1,19 @@
 package com.RevPasswordManager.dto;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.List;
 
 @Data
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class DashboardResponse {
 
-    private int totalPasswords;
-    private int weakPasswords;
-    private int favoritePasswords;
+    private long totalPasswords;
+    private long weakPasswords;
+    private long reusedPasswords;
+    private List<RecentPasswordDTO> recentPasswords;
 }

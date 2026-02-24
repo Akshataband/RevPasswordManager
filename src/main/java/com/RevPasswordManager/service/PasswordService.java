@@ -6,6 +6,7 @@ import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.PasswordEntryRepository;
 import com.RevPasswordManager.repository.UserRepository;
+import com.RevPasswordManager.security.BackupEncryptionService;
 import com.RevPasswordManager.security.EncryptionService;
 import com.RevPasswordManager.util.PasswordSpecification;
 import com.RevPasswordManager.util.PasswordStrengthUtil;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -25,7 +27,8 @@ public class PasswordService {
     private final UserRepository userRepository;
     private final EncryptionService encryptionService;
     private final PasswordEncoder passwordEncoder;
-
+    private final BackupEncryptionService backupEncryptionService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     // ================= PRIVATE MAPPER =================
     private PasswordResponse mapToDto(PasswordEntry entry) {
         return PasswordResponse.builder()
@@ -229,8 +232,8 @@ public class PasswordService {
     }
 
     // ================= SECURITY AUDIT =================
-    public SecurityAuditResponse securityAudit(String username) {
-
+    public SecurityAuditResponse securityAudit(String username, String masterPassword) {
+        validateMasterPassword(username, masterPassword);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
@@ -259,18 +262,27 @@ public class PasswordService {
             }
         }
 
-        reused = (int) passwordMap.values().stream()
-                .filter(count -> count > 1)
-                .count();
+// 🔥 improved reused calculation
+        for (int count : passwordMap.values()) {
+            if (count > 1) {
+                reused += count;
+            }
+        }
 
+// 🔥 improved reused calculation
+        for (int count : passwordMap.values()) {
+            if (count > 1) {
+                reused += count;
+            }
+        }
         return new SecurityAuditResponse(weak, reused, old);
     }
 
     // ================= DASHBOARD =================
-    public Map<String, Object> getDashboard(String username) {
+    public DashboardResponse getDashboardSummary(String username) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         List<PasswordEntry> entries =
                 passwordEntryRepository.findByUserId(user.getId());
@@ -278,87 +290,158 @@ public class PasswordService {
         long total = entries.size();
 
         long weak = entries.stream()
-                .filter(e -> encryptionService.decrypt(e.getEncryptedPassword()).length() < 8)
+                .filter(entry -> isWeak(entry.getEncryptedPassword()))
                 .count();
 
-        Map<String, Object> dashboard = new HashMap<>();
-        dashboard.put("totalPasswords", total);
-        dashboard.put("weakPasswords", weak);
-
-        return dashboard;
-    }
-    public List<PasswordResponse> exportBackup(String username) {
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        return passwordEntryRepository.findByUserId(user.getId())
+        long reused = entries.stream()
+                .collect(Collectors.groupingBy(
+                        PasswordEntry::getEncryptedPassword,
+                        Collectors.counting()
+                ))
+                .values()
                 .stream()
-                .map(this::mapToDto)
+                .filter(count -> count > 1)
+                .count();
+
+        List<RecentPasswordDTO> recent = entries.stream()
+                .sorted(Comparator.comparing(
+                        PasswordEntry::getCreatedAt).reversed())
+                .limit(5)
+                .map(entry -> RecentPasswordDTO.builder()
+                        .id(entry.getId())
+                        .accountName(entry.getAccountName())
+                        .category(entry.getCategory())
+                        .createdAt(entry.getCreatedAt())
+                        .build())
                 .toList();
+
+        return DashboardResponse.builder()
+                .totalPasswords(total)
+                .weakPasswords(weak)
+                .reusedPasswords(reused)
+                .recentPasswords(recent)
+                .build();
     }
-    public String importBackup(String username, BackupDTO backupDTO) {
+
+    //    =====================================================================================
+    public String exportBackup(String username, String masterPassword) {
+
+        validateMasterPassword(username, masterPassword); // 🔐 secure
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        for (PasswordEntry entry : backupDTO.getEntries()) {
+        List<PasswordEntry> entries =
+                passwordEntryRepository.findByUserId(user.getId());
 
-            PasswordEntry newEntry = PasswordEntry.builder()
-                    .accountName(entry.getAccountName())
-                    .website(entry.getWebsite())
-                    .username(entry.getUsername())
-                    .encryptedPassword(entry.getEncryptedPassword())
-                    .category(entry.getCategory())
-                    .notes(entry.getNotes())
-                    .favorite(entry.isFavorite())
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .user(user)   // 🔥 important
-                    .build();
+        try {
+            String json = objectMapper.writeValueAsString(entries);
+            return backupEncryptionService.encrypt(json);
 
-            passwordEntryRepository.save(newEntry);
+        } catch (Exception e) {
+            throw new CustomException("Backup export failed");
+        }
+    }
+//    ===================================================================================
+public String importBackup(String username,
+                           String masterPassword,
+                           String encryptedBackup) {
+
+    validateMasterPassword(username, masterPassword); // 🔐 secure
+
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new CustomException("User not found"));
+
+    try {
+
+        String json = backupEncryptionService.decrypt(encryptedBackup);
+
+        PasswordEntry[] entries =
+                objectMapper.readValue(json, PasswordEntry[].class);
+
+        for (PasswordEntry entry : entries) {
+
+            entry.setId(null);
+            entry.setUser(user);
+            entry.setCreatedAt(LocalDateTime.now());
+            entry.setUpdatedAt(LocalDateTime.now());
+
+            passwordEntryRepository.save(entry);
         }
 
         return "Backup imported successfully";
-    }
 
-    public String generatePassword(PasswordGeneratorRequest request) {
+    } catch (Exception e) {
+        throw new CustomException("Invalid backup file");
+    }
+}
+//===========================================================================================
+    public List<GeneratedPasswordResponse> generatePasswords(
+            PasswordGeneratorRequest request) {
+
+        if (request.getLength() < 8 || request.getLength() > 64) {
+            throw new CustomException("Password length must be between 8 and 64");
+        }
+
+        if (request.getCount() <= 0 || request.getCount() > 10) {
+            throw new CustomException("Count must be between 1 and 10");
+        }
 
         String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         String lower = "abcdefghijklmnopqrstuvwxyz";
         String numbers = "0123456789";
         String special = "!@#$%^&*";
 
+        String similar = "0O1l";
+
         StringBuilder characters = new StringBuilder();
 
-        if (request.isIncludeUppercase()) {
-            characters.append(upper);
-        }
-        if (request.isIncludeLowercase()) {
-            characters.append(lower);
-        }
-        if (request.isIncludeNumbers()) {
-            characters.append(numbers);
-        }
-        if (request.isIncludeSpecial()) {
-            characters.append(special);
-        }
+        if (request.isIncludeUppercase()) characters.append(upper);
+        if (request.isIncludeLowercase()) characters.append(lower);
+        if (request.isIncludeNumbers()) characters.append(numbers);
+        if (request.isIncludeSpecial()) characters.append(special);
 
         if (characters.length() == 0) {
-            throw new CustomException("At least one character type must be selected");
+            throw new CustomException("Select at least one character type");
+        }
+
+        if (request.isExcludeSimilar()) {
+            for (char c : similar.toCharArray()) {
+                int index = characters.indexOf(String.valueOf(c));
+                if (index != -1) {
+                    characters.deleteCharAt(index);
+                }
+            }
         }
 
         Random random = new Random();
-        StringBuilder password = new StringBuilder();
+        List<GeneratedPasswordResponse> result = new ArrayList<>();
 
-        for (int i = 0; i < request.getLength(); i++) {
-            int index = random.nextInt(characters.length());
-            password.append(characters.charAt(index));
+        for (int i = 0; i < request.getCount(); i++) {
+
+            StringBuilder password = new StringBuilder();
+
+            for (int j = 0; j < request.getLength(); j++) {
+                int index = random.nextInt(characters.length());
+                password.append(characters.charAt(index));
+            }
+
+            String generated = password.toString();
+
+            PasswordStrengthUtil.Strength strength =
+                    PasswordStrengthUtil.checkStrength(generated);
+
+            result.add(
+                    new GeneratedPasswordResponse(
+                            generated,
+                            strength.name()
+                    )
+            );
         }
 
-        return password.toString();
+        return result;
     }
+
 
     public String updatePassword(Long id,
                                  UpdatePasswordRequest request,
@@ -421,5 +504,134 @@ public class PasswordService {
 
         return "Master password changed successfully";
     }
+
+    private boolean isWeak(String encryptedPassword) {
+
+        // Since encrypted, we cannot check real strength here
+        // For now assume short encrypted string = weak
+        return encryptedPassword.length() < 30;
+    }
+
+    public String saveGeneratedPassword(
+            SaveGeneratedPasswordRequest request,
+            String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        if (request.getGeneratedPassword() == null
+                || request.getGeneratedPassword().isBlank()) {
+            throw new CustomException("Generated password is required");
+        }
+
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(
+                        request.getGeneratedPassword());
+
+        PasswordEntry entry = PasswordEntry.builder()
+                .accountName(request.getAccountName())
+                .website(request.getWebsite())
+                .username(request.getUsername())
+                .encryptedPassword(
+                        encryptionService.encrypt(
+                                request.getGeneratedPassword()))
+                .category(request.getCategory())
+                .notes(request.getNotes())
+                .favorite(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .user(user)
+                .build();
+
+        passwordEntryRepository.save(entry);
+
+        return "Generated password saved successfully (" + strength + ")";
+    }
+
+    public SecurityAlertResponse getSecurityAlerts(
+            String username,
+            String masterPassword) {
+
+        validateMasterPassword(username, masterPassword); // 🔐 secure
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        List<PasswordEntry> entries =
+                passwordEntryRepository.findByUserId(user.getId());
+
+        List<String> alerts = new ArrayList<>();
+        Map<String, Integer> passwordMap = new HashMap<>();
+
+        for (PasswordEntry entry : entries) {
+
+            String decrypted;
+
+            try {
+                decrypted = encryptionService.decrypt(entry.getEncryptedPassword());
+            } catch (Exception e) {
+                alerts.add("Password could not be analyzed for account: "
+                        + entry.getAccountName());
+                continue;
+            }
+
+            // Weak password check
+            if (PasswordStrengthUtil.checkStrength(decrypted)
+                    == PasswordStrengthUtil.Strength.WEAK) {
+
+                alerts.add("Weak password detected for account: "
+                        + entry.getAccountName());
+            }
+
+            passwordMap.put(decrypted,
+                    passwordMap.getOrDefault(decrypted, 0) + 1);
+
+            // Old password check (90 days)
+            if (entry.getCreatedAt() != null &&
+                    entry.getCreatedAt().isBefore(
+                            LocalDateTime.now().minusDays(90))) {
+
+                alerts.add("Old password (90+ days) for account: "
+                        + entry.getAccountName());
+            }
+        }
+
+        passwordMap.forEach((password, count) -> {
+            if (count > 1) {
+                alerts.add("Password reused in " + count + " accounts");
+            }
+        });
+
+        if (alerts.isEmpty()) {
+            alerts.add("No security risks detected");
+        }
+
+        return new SecurityAlertResponse(alerts);
+    }
+
+//    ===================================================================================
+    private void validateMasterPassword(String username, String masterPassword) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        if (!passwordEncoder.matches(masterPassword, user.getMasterPassword())) {
+            throw new CustomException("Invalid master password");
+        }
+    }
+
+
+    public PasswordStrengthResponse checkPasswordStrength(String password) {
+
+        if (password == null || password.isBlank()) {
+            throw new CustomException("Password cannot be empty");
+        }
+
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(password);
+
+        return new PasswordStrengthResponse(strength.name());
+    }
+
 
 }

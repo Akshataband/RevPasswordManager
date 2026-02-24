@@ -1,24 +1,32 @@
 package com.RevPasswordManager.controller;
 
-import com.RevPasswordManager.dto.PasswordGeneratorRequest;
+import com.RevPasswordManager.dto.*;
 import com.RevPasswordManager.service.PasswordService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/generator")
 @RequiredArgsConstructor
 public class GeneratorController {
 
     private final PasswordService passwordService;
 
-    @PostMapping("/generator")
-    public ResponseEntity<String> generate(
+    @PostMapping
+    public List<GeneratedPasswordResponse> generate(
             @RequestBody PasswordGeneratorRequest request) {
 
-        String password = passwordService.generatePassword(request);
+        return passwordService.generatePasswords(request);
+    }
 
-        return ResponseEntity.ok(password);
+    @PostMapping("/strength")
+    public PasswordStrengthResponse checkStrength(
+            @RequestBody PasswordStrengthRequest request) {
+
+        return passwordService.checkPasswordStrength(
+                request.getPassword()
+        );
     }
 }

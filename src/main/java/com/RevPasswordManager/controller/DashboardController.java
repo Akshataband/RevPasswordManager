@@ -1,7 +1,9 @@
 package com.RevPasswordManager.controller;
 
+import com.RevPasswordManager.dto.DashboardResponse;
 import com.RevPasswordManager.service.PasswordService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -12,7 +14,7 @@ public class DashboardController {
     private final PasswordService passwordService;
 
     @GetMapping
-    public String dashboard() {
-        return "Dashboard working";
+    public DashboardResponse dashboard(Authentication authentication) {
+        return passwordService.getDashboardSummary(authentication.getName());
     }
 }

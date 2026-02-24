@@ -6,8 +6,13 @@ import lombok.Data;
 public class PasswordGeneratorRequest {
 
     private int length;
+
     private boolean includeUppercase;
     private boolean includeLowercase;
     private boolean includeNumbers;
     private boolean includeSpecial;
+
+    private boolean excludeSimilar;
+
+    private int count;
 }

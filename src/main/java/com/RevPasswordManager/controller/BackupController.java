@@ -1,10 +1,12 @@
 package com.RevPasswordManager.controller;
 
 import com.RevPasswordManager.dto.BackupDTO;
+import com.RevPasswordManager.dto.ImportBackupRequest;
+import com.RevPasswordManager.dto.SensitiveActionRequest;
 import com.RevPasswordManager.service.PasswordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,24 +16,29 @@ public class BackupController {
 
     private final PasswordService passwordService;
 
-    // ================= EXPORT =================
-    @GetMapping("/export")
-    public ResponseEntity<?> exportBackup(
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+    @PostMapping("/export")
+    public ResponseEntity<?> export(
+            @RequestBody SensitiveActionRequest request,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                passwordService.exportBackup(userDetails.getUsername())
+                passwordService.exportBackup(
+                        authentication.getName(),
+                        request.getMasterPassword()
+                )
         );
     }
-
-    // ================= IMPORT =================
     @PostMapping("/import")
     public ResponseEntity<?> importBackup(
-            @RequestBody BackupDTO backupDTO,
-            @AuthenticationPrincipal org.springframework.security.core.userdetails.User userDetails) {
+            @RequestBody ImportBackupRequest request,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                passwordService.importBackup(userDetails.getUsername(), backupDTO)
+                passwordService.importBackup(
+                        authentication.getName(),
+                        request.getMasterPassword(),
+                        request.getEncryptedData()
+                )
         );
     }
 }

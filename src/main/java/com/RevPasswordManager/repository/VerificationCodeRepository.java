@@ -11,4 +11,6 @@ public interface VerificationCodeRepository
 
     VerificationCode findTopByUserOrderByExpiryTimeDesc(User user);
     Optional<VerificationCode> findByUserAndCode(User user, String code);
+    Optional<VerificationCode>
+    findTopByUserIdOrderByExpiryTimeDesc(Long userId);
 }

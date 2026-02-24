@@ -4,36 +4,45 @@ import org.springframework.stereotype.Service;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
-import org.springframework.beans.factory.annotation.Value;
+
 @Service
-public class EncryptionService {
+public class BackupEncryptionService {
 
-    @Value("${app.encryption.key}")
-    private String secret;
 
-    private SecretKeySpec getKey() {
-        return new SecretKeySpec(secret.getBytes(), "AES");
-    }
+        private static final String SECRET = "BackupSecretKey1";// 16 chars
 
     public String encrypt(String data) {
         try {
+            SecretKeySpec key =
+                    new SecretKeySpec(SECRET.getBytes(), "AES");
+
             Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.ENCRYPT_MODE, getKey());
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+
             byte[] encrypted = cipher.doFinal(data.getBytes());
+
             return Base64.getEncoder().encodeToString(encrypted);
+
         } catch (Exception e) {
-            throw new RuntimeException("Encryption failed");
+            throw new RuntimeException("Backup encryption failed");
         }
     }
 
     public String decrypt(String data) {
         try {
+            SecretKeySpec key =
+                    new SecretKeySpec(SECRET.getBytes(), "AES");
+
             Cipher cipher = Cipher.getInstance("AES");
-            cipher.init(Cipher.DECRYPT_MODE, getKey());
-            byte[] decoded = Base64.getDecoder().decode(data);
+            cipher.init(Cipher.DECRYPT_MODE, key);
+
+            byte[] decoded =
+                    Base64.getDecoder().decode(data);
+
             return new String(cipher.doFinal(decoded));
+
         } catch (Exception e) {
-            throw new RuntimeException("Decryption failed");
+            throw new RuntimeException("Backup decryption failed");
         }
     }
 }

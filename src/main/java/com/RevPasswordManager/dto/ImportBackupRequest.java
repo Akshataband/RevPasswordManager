@@ -3,7 +3,7 @@ package com.RevPasswordManager.dto;
 import lombok.Data;
 
 @Data
-public class ViewPasswordRequest {
-
+public class ImportBackupRequest {
     private String masterPassword;
+    private String encryptedData;
 }

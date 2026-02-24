@@ -11,12 +11,12 @@ public interface PasswordEntryRepository
         extends JpaRepository<PasswordEntry, Long>,
         JpaSpecificationExecutor<PasswordEntry> {
 
-    // Basic listing
     List<PasswordEntry> findByUserId(Long userId);
 
-    // Favorites
     List<PasswordEntry> findByUserIdAndFavoriteTrue(Long userId);
 
     List<PasswordEntry> findByUserIdOrderByCreatedAtDesc(Long userId);
+
     Optional<PasswordEntry> findByIdAndUserId(Long id, Long userId);
+
 }

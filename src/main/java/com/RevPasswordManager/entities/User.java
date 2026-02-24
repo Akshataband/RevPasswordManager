@@ -17,9 +17,18 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String username;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false)
     private String masterPassword;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
 
     private boolean twoFactorEnabled;
     private boolean accountLocked;
@@ -30,8 +39,8 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private String securityQuestion;
-    private String securityAnswer;
+    private boolean recoveryVerified;
+    private String twoFactorSecret;
 
     @Enumerated(EnumType.STRING)
     private Role role;

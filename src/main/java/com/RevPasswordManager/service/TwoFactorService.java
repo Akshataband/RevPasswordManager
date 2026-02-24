@@ -1,9 +1,10 @@
 package com.RevPasswordManager.service;
-import com.RevPasswordManager.entities.User;
 
+import com.RevPasswordManager.entities.User;
 import com.RevPasswordManager.entities.VerificationCode;
-import org.springframework.stereotype.Service;
 import com.RevPasswordManager.repository.VerificationCodeRepository;
+import com.RevPasswordManager.repository.UserRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Random;
@@ -12,9 +13,13 @@ import java.util.Random;
 public class TwoFactorService {
 
     private final VerificationCodeRepository repository;
+    private final UserRepository userRepository;
 
-    public TwoFactorService(VerificationCodeRepository repository) {
+    // ✅ FIXED CONSTRUCTOR
+    public TwoFactorService(VerificationCodeRepository repository,
+                            UserRepository userRepository) {
         this.repository = repository;
+        this.userRepository = userRepository;
     }
 
     public String generateCode(User user) {
@@ -40,13 +45,9 @@ public class TwoFactorService {
                 repository.findTopByUserOrderByExpiryTimeDesc(user);
 
         if (verification == null) return false;
-
         if (verification.isUsed()) return false;
-
         if (verification.getExpiryTime()
-                .isBefore(LocalDateTime.now()))
-            return false;
-
+                .isBefore(LocalDateTime.now())) return false;
         if (!verification.getCode().equals(code)) return false;
 
         verification.setUsed(true);
@@ -54,6 +55,4 @@ public class TwoFactorService {
 
         return true;
     }
-
-
 }

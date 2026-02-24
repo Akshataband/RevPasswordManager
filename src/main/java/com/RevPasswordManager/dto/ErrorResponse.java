@@ -1,15 +1,19 @@
 package com.RevPasswordManager.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
-@Data
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class ErrorResponse {
 
-    private String message;
-    private int status;
     private LocalDateTime timestamp;
+    private int status;
+    private String message;
+    private Map<String, String> validationErrors;
 }
