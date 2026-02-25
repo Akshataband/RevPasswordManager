@@ -17,6 +17,7 @@ public class PasswordResponse {
     private String category;
     private String notes;
     private boolean favorite;
+    private String strength;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

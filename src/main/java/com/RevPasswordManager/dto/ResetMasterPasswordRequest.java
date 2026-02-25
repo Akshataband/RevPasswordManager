@@ -6,5 +6,6 @@ import lombok.Data;
 public class ResetMasterPasswordRequest {
 
     private String username;
+    private String currentMasterPassword;
     private String newMasterPassword;
 }

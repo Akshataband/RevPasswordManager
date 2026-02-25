@@ -42,6 +42,10 @@ public class User {
     private boolean recoveryVerified;
     private String twoFactorSecret;
 
+    private String otp;
+
+    private LocalDateTime otpExpiry;
+
     @Enumerated(EnumType.STRING)
     private Role role;
 

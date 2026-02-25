@@ -31,6 +31,14 @@ public class PasswordService {
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     // ================= PRIVATE MAPPER =================
     private PasswordResponse mapToDto(PasswordEntry entry) {
+
+        String decrypted = encryptionService.decrypt(
+                entry.getEncryptedPassword()
+        );
+
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(decrypted);
+
         return PasswordResponse.builder()
                 .id(entry.getId())
                 .accountName(entry.getAccountName())
@@ -39,6 +47,7 @@ public class PasswordService {
                 .category(entry.getCategory())
                 .notes(entry.getNotes())
                 .favorite(entry.isFavorite())
+                .strength(strength.name())
                 .createdAt(entry.getCreatedAt())
                 .updatedAt(entry.getUpdatedAt())
                 .build();

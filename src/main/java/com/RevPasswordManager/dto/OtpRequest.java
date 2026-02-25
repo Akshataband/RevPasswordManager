@@ -6,5 +6,5 @@ import lombok.Data;
 public class OtpRequest {
 
     private String username;
-    private String code;
+    private String otp;
 }

@@ -1,6 +1,7 @@
 package com.RevPasswordManager.controller;
 
 import com.RevPasswordManager.dto.*;
+import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.service.AuthService;
 import com.RevPasswordManager.service.PasswordService;
 import jakarta.validation.Valid;
@@ -32,15 +33,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // ================= SEND OTP =================
-    @PostMapping("/send-otp")
-    public ResponseEntity<String> sendOtp(
-            @RequestBody SendOtpRequest request) {
-
-        return ResponseEntity.ok(
-                authService.sendOtp(request.getUsername())
-        );
-    }
 
     // ================= VERIFY OTP =================
     @PostMapping("/verify-otp")
@@ -84,16 +76,7 @@ public class AuthController {
         );
     }
 
-    @PostMapping("/verify-2fa")
-    public String verify2FA(
-            @RequestParam String code,
-            Authentication authentication) {
 
-        return authService.verify2FA(
-                authentication.getName(),
-                code
-        );
-    }
     @PostMapping("/logout")
     public String logout(
             @RequestHeader("Authorization") String header) {
@@ -125,15 +108,17 @@ public class AuthController {
         );
     }
 
-
     @PutMapping("/security-questions")
-    public String updateSecurityQuestions(
+    public ResponseEntity<?> updateSecurityQuestions(
             @RequestBody SecurityQuestionRequest request,
             Authentication authentication) {
 
-        return authService.updateSecurityQuestions(
-                authentication.getName(),
-                request
+        return ResponseEntity.ok(
+                authService.updateSecurityQuestions(
+                        authentication.getName(),
+                        request
+                )
         );
     }
+
 }

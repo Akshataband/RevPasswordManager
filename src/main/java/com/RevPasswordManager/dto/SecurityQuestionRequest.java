@@ -6,6 +6,6 @@ import java.util.List;
 
 @Data
 public class SecurityQuestionRequest {
-
+    private String masterPassword;
     private List<QuestionAnswer> questions;
 }

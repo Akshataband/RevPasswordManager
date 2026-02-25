@@ -53,8 +53,10 @@ public class TwoFactorController {
 
         String code = twoFactorService.generateCode(user);
 
-        // In real app → send email
-        return ResponseEntity.ok("OTP (simulation): " + code);
+        // Simulation only
+        System.out.println("2FA OTP: " + code);
+
+        return ResponseEntity.ok("OTP sent successfully");
     }
 
     @PostMapping("/verify-otp")
