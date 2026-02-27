@@ -1,70 +1,35 @@
 package com.RevPasswordManager.service;
 
-import com.RevPasswordManager.entities.User;
-import com.RevPasswordManager.entities.VerificationCode;
-import com.RevPasswordManager.exception.CustomException;
-import com.RevPasswordManager.repository.VerificationCodeRepository;
-import com.RevPasswordManager.repository.UserRepository;
+import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.secret.DefaultSecretGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.Random;
 
 @Service
 public class TwoFactorService {
 
-    private final VerificationCodeRepository repository;
-    private final UserRepository userRepository;
+    private final SecretGenerator secretGenerator =
+            new DefaultSecretGenerator();
 
-    public TwoFactorService(VerificationCodeRepository repository,
-                            UserRepository userRepository) {
-        this.repository = repository;
-        this.userRepository = userRepository;
+    private final TimeProvider timeProvider =
+            new SystemTimeProvider();
+
+    private final DefaultCodeGenerator codeGenerator =
+            new DefaultCodeGenerator();
+
+    public String generateSecret() {
+        return secretGenerator.generate();
     }
 
-    // ✅ GENERATE OTP (Invalidate old ones)
-    public String generateCode(User user) {
+    public boolean verifyCode(String secret, String code) {
 
-        // 🔐 Invalidate all previous unused codes
-        repository.invalidateAllUnusedByUser(user.getId());
+        CodeVerifier verifier =
+                new DefaultCodeVerifier(codeGenerator, timeProvider);
 
-        String code =
-                String.valueOf(new Random().nextInt(900000) + 100000);
-
-        VerificationCode verification = new VerificationCode();
-        verification.setCode(code);
-        verification.setExpiryTime(
-                LocalDateTime.now().plusMinutes(1)); // 🔥 1 minute
-        verification.setUsed(false);
-        verification.setUser(user);
-
-        repository.save(verification);
-
-        return code;
-    }
-
-    // ✅ VERIFY OTP
-    public boolean verifyCode(User user, String code) {
-
-        VerificationCode verification =
-                repository.findTopByUserOrderByExpiryTimeDesc(user);
-
-        if (verification == null) return false;
-
-        // ❌ Already used
-        if (verification.isUsed()) return false;
-
-        // ⏳ Expired
-        if (verification.getExpiryTime()
-                .isBefore(LocalDateTime.now())) return false;
-
-        // ❌ Wrong code
-        if (!verification.getCode().equals(code)) return false;
-
-        // ✅ Single-use enforcement
-        verification.setUsed(true);
-        repository.save(verification);
-
-        return true;
+        return verifier.isValidCode(secret, code);
     }
 }

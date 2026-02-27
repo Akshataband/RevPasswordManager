@@ -26,18 +26,15 @@ public class AuthService {
     // ================= REGISTER =================
     public AuthResponse register(RegisterRequest request) {
 
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent())
             throw new CustomException("Username already exists");
-        }
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent())
             throw new CustomException("Email already exists");
-        }
 
-        if (request.getSecurityQuestions() == null
-                || request.getSecurityQuestions().size() < 3) {
-            throw new CustomException("Minimum 3 security questions required");
-        }
+        if (request.getSecurityAnswers() == null ||
+                request.getSecurityAnswers().size() < 3)
+            throw new CustomException("Minimum 3 security answers required");
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -46,21 +43,11 @@ public class AuthService {
                 .masterPassword(passwordEncoder.encode(request.getMasterPassword()))
                 .role(Role.USER)
                 .twoFactorEnabled(false)
-                .accountLocked(false)
-                .failedAttempts(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         userRepository.save(user);
-
-        for (QuestionAnswer qa : request.getSecurityQuestions()) {
-            SecurityQuestion question = new SecurityQuestion();
-            question.setQuestion(qa.getQuestion());
-            question.setAnswer(passwordEncoder.encode(qa.getAnswer()));
-            question.setUser(user);
-            securityQuestionRepository.save(question);
-        }
 
         return AuthResponse.builder()
                 .message("Registration successful")
@@ -71,201 +58,120 @@ public class AuthService {
     // ================= LOGIN =================
     public AuthResponse login(LoginRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("Invalid username"));
+        User user = userRepository
+                .findByUsernameOrEmail(request.getUsername(), request.getUsername())
+                .orElseThrow(() ->
+                        new CustomException("Invalid username or email"));
 
-        if (!passwordEncoder.matches(request.getMasterPassword(), user.getMasterPassword())) {
-            throw new RuntimeException("Invalid password");
+        if (!passwordEncoder.matches(
+                request.getMasterPassword(),
+                user.getMasterPassword())) {
+
+            throw new CustomException("Invalid password");
         }
 
-        // Generate OTP
-        String otp = generateOtp();
+        // 🔐 If 2FA disabled → Direct login
+        if (!user.isTwoFactorEnabled()) {
 
-        user.setOtp(otp);
-        user.setOtpExpiry(LocalDateTime.now().plusMinutes(1));
-        userRepository.save(user);
+            String token = jwtService.generateToken(user.getUsername());
 
-        // Print OTP in console
-        System.out.println("Generated OTP for " + user.getUsername() + ": " + otp);
+            return AuthResponse.builder()
+                    .token(token)
+                    .otpRequired(false)
+                    .message("Login successful")
+                    .build();
+        }
 
+        // 🔐 If 2FA enabled → Require TOTP
         return AuthResponse.builder()
                 .otpRequired(true)
-                .message("OTP generated")
+                .message("2FA verification required")
                 .build();
     }
 
-    // ================= VERIFY OTP =================
-    public AuthResponse verifyOtp(OtpRequest request) {
+    // ================= VERIFY 2FA =================
+    public AuthResponse verify2FA(OtpRequest request) {
 
         User user = userRepository
                 .findByUsernameOrEmail(request.getUsername(), request.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
-        if (user.getOtp() == null || user.getOtpExpiry() == null) {
-            throw new RuntimeException("OTP not generated");
-        }
+        boolean valid = twoFactorService
+                .verifyCode(user.getTwoFactorSecret(), request.getOtp());
 
-        if (user.getOtpExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("OTP expired");
-        }
-
-        if (!user.getOtp().equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP");
-        }
-
-        user.setOtp(null);
-        user.setOtpExpiry(null);
-        userRepository.save(user);
+        if (!valid)
+            throw new CustomException("Invalid authentication code");
 
         String token = jwtService.generateToken(user.getUsername());
 
         return AuthResponse.builder()
                 .token(token)
                 .otpRequired(false)
+                .message("Login successful")
                 .build();
     }
 
-    // ================= GENERATE OTP =================
-    private String generateOtp() {
-        return String.valueOf((int) (Math.random() * 900000) + 100000);
-    }
-
-    // ================= VERIFY SECURITY ANSWER =================
-    public String verifySecurityAnswer(VerifySecurityAnswerRequest request) {
-
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        List<SecurityQuestion> questions =
-                securityQuestionRepository.findByUserId(user.getId());
-
-        boolean matched = questions.stream()
-                .anyMatch(q ->
-                        passwordEncoder.matches(
-                                request.getAnswer(),
-                                q.getAnswer()
-                        )
-                );
-
-        if (!matched) {
-            throw new CustomException("Incorrect security answer");
-        }
-
-        user.setRecoveryVerified(true);
-        userRepository.save(user);
-
-        return "Security answer verified successfully";
-    }
-
-    // ================= RESET MASTER PASSWORD =================
-    public String resetMasterPassword(ResetMasterPasswordRequest request) {
-
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        // 🔐 Verify current password
-        if (!passwordEncoder.matches(
-                request.getCurrentMasterPassword(),
-                user.getMasterPassword())) {
-
-            throw new CustomException("Current master password is incorrect");
-        }
-
-        // 🔄 Update to new password
-        user.setMasterPassword(
-                passwordEncoder.encode(request.getNewMasterPassword()));
-
-        user.setUpdatedAt(LocalDateTime.now());
-
-        userRepository.save(user);
-
-        return "Master password updated successfully";
-    }
-
-    // ================= TOGGLE 2FA =================
-    public String toggle2FA(String username) {
+    // ================= ENABLE 2FA =================
+    public String enable2FA(String username) {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        if (!user.isTwoFactorEnabled()) {
+        if (user.isTwoFactorEnabled())
+            throw new CustomException("2FA already enabled");
 
-            String secret = java.util.UUID.randomUUID().toString();
+        String secret = twoFactorService.generateSecret();
 
-            user.setTwoFactorSecret(secret);
-            user.setTwoFactorEnabled(true);
-            userRepository.save(user);
-
-            return "2FA Enabled. Secret (simulated): " + secret;
-
-        } else {
-
-            user.setTwoFactorSecret(null);
-            user.setTwoFactorEnabled(false);
-            userRepository.save(user);
-
-            return "2FA Disabled";
-        }
-    }
-
-    // ================= UPDATE PROFILE =================
-    public String updateProfile(String username, UpdateProfileRequest request) {
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPhoneNumber(request.getPhoneNumber());
-
+        user.setTwoFactorSecret(secret);
         userRepository.save(user);
 
-        return "Profile updated successfully";
+        return secret; // frontend generates QR
     }
 
-    // ================= UPDATE SECURITY QUESTIONS =================
-    public String updateSecurityQuestions(String username,
-                                          SecurityQuestionRequest request) {
+    // ================= 2FA STATUS =================
+    public boolean get2FAStatus(String username) {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        // 🔐 Require master password verification
-        if (request.getMasterPassword() == null ||
-                !passwordEncoder.matches(
-                        request.getMasterPassword(),
-                        user.getMasterPassword())) {
+        return user.isTwoFactorEnabled();
+    }
 
-            throw new CustomException("Invalid master password");
-        }
+    // ================= CONFIRM 2FA =================
+    public String confirm2FA(String username, String code) {
 
-        if (request.getQuestions() == null ||
-                request.getQuestions().size() < 3) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
 
-            throw new CustomException("Minimum 3 questions required");
-        }
+        boolean valid = twoFactorService
+                .verifyCode(user.getTwoFactorSecret(), code);
 
-        // Delete old questions
-        securityQuestionRepository.deleteAll(
-                securityQuestionRepository.findByUserId(user.getId())
-        );
+        if (!valid)
+            throw new CustomException("Invalid code");
 
-        // Save new questions
-        for (QuestionAnswer qa : request.getQuestions()) {
+        user.setTwoFactorEnabled(true);
+        userRepository.save(user);
 
-            if (qa.getAnswer() == null || qa.getAnswer().isBlank()) {
-                throw new CustomException("Answer cannot be empty");
-            }
+        return "2FA enabled successfully";
+    }
 
-            SecurityQuestion question = new SecurityQuestion();
-            question.setQuestion(qa.getQuestion());
-            question.setAnswer(passwordEncoder.encode(qa.getAnswer()));
-            question.setUser(user);
+    // ================= DISABLE 2FA =================
+    public String disable2FA(String username, String code) {
 
-            securityQuestionRepository.save(question);
-        }
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
 
-        return "Security questions updated successfully";
+        boolean valid = twoFactorService
+                .verifyCode(user.getTwoFactorSecret(), code);
+
+        if (!valid)
+            throw new CustomException("Invalid code");
+
+        user.setTwoFactorEnabled(false);
+        user.setTwoFactorSecret(null);
+        userRepository.save(user);
+
+        return "2FA disabled successfully";
     }
 
     // ================= LOGOUT =================
@@ -273,7 +179,6 @@ public class AuthService {
 
         BlacklistedToken blacklisted = new BlacklistedToken();
         blacklisted.setToken(token);
-
         blacklistedTokenRepository.save(blacklisted);
     }
 }

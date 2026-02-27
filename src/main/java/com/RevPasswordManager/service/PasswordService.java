@@ -61,12 +61,12 @@ public class PasswordService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        // 🔐 Check if account locked
+        //  Check if account locked
         if (user.isAccountLocked()) {
             throw new CustomException("Account is locked due to multiple failed attempts");
         }
 
-        // ❌ Wrong master password
+        // Wrong master password
         if (!passwordEncoder.matches(masterPassword, user.getMasterPassword())) {
 
             user.setFailedAttempts(user.getFailedAttempts() + 1);
@@ -81,12 +81,13 @@ public class PasswordService {
             throw new CustomException("Invalid master password");
         }
 
-        // ✅ Correct password → reset attempts
+        //  Correct password → reset attempts
         user.setFailedAttempts(0);
         userRepository.save(user);
 
-        PasswordEntry entry = passwordEntryRepository.findById(entryId)
-                .orElseThrow(() -> new CustomException("Password entry not found"));
+        PasswordEntry entry = passwordEntryRepository
+                .findByIdAndUserId(entryId, user.getId())
+                .orElseThrow(() -> new CustomException("Password not found"));
 
         if (!entry.getUser().getId().equals(user.getId())) {
             throw new CustomException("Unauthorized access");
@@ -182,47 +183,33 @@ public class PasswordService {
 
         return "Password deleted successfully";
     }
+
     // ================= ADD TO FAVORITE =================
     public String addToFavorite(Long id, String username) {
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        PasswordEntry entry = passwordEntryRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Password not found"));
-
-        if (!entry.getUser().getId().equals(user.getId())) {
-            throw new CustomException("Unauthorized");
-        }
-
-        if (entry.isFavorite()) {
-            return "Already marked as favorite";
-        }
+        PasswordEntry entry = passwordEntryRepository
+                .findByIdAndUserUsername(id, username)
+                .orElseThrow(() ->
+                        new CustomException("Password not found"));
 
         entry.setFavorite(true);
+        entry.setUpdatedAt(LocalDateTime.now());
+
         passwordEntryRepository.save(entry);
 
         return "Marked as favorite";
     }
-
     // ================= REMOVE FROM FAVORITE =================
     public String removeFromFavorite(Long id, String username) {
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        PasswordEntry entry = passwordEntryRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Password not found"));
-
-        if (!entry.getUser().getId().equals(user.getId())) {
-            throw new CustomException("Unauthorized");
-        }
-
-        if (!entry.isFavorite()) {
-            return "Password is not in favorites";
-        }
+        PasswordEntry entry = passwordEntryRepository
+                .findByIdAndUserUsername(id, username)
+                .orElseThrow(() ->
+                        new CustomException("Password not found"));
 
         entry.setFavorite(false);
+        entry.setUpdatedAt(LocalDateTime.now());
+
         passwordEntryRepository.save(entry);
 
         return "Removed from favorite";
@@ -271,14 +258,8 @@ public class PasswordService {
             }
         }
 
-// 🔥 improved reused calculation
-        for (int count : passwordMap.values()) {
-            if (count > 1) {
-                reused += count;
-            }
-        }
 
-// 🔥 improved reused calculation
+//  improved reused calculation
         for (int count : passwordMap.values()) {
             if (count > 1) {
                 reused += count;
@@ -641,6 +622,13 @@ public String importBackup(String username,
 
         return new PasswordStrengthResponse(strength.name());
     }
+    public PasswordResponse getById(Long id, String username) {
 
+        PasswordEntry entry = passwordEntryRepository
+                .findByIdAndUserUsername(id, username)
+                .orElseThrow(() ->
+                        new CustomException("Password not found"));
 
+        return mapToDto(entry);
+    }
 }

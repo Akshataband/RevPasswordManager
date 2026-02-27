@@ -18,5 +18,6 @@ public interface PasswordEntryRepository
     List<PasswordEntry> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     Optional<PasswordEntry> findByIdAndUserId(Long id, Long userId);
+    Optional<PasswordEntry> findByIdAndUserUsername(Long id, String username);
 
 }

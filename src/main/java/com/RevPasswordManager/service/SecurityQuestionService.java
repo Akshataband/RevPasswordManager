@@ -37,7 +37,7 @@ public class SecurityQuestionService {
 
             SecurityQuestion question = new SecurityQuestion();
             question.setQuestion(dto.getQuestion());
-            question.setAnswer(passwordEncoder.encode(dto.getAnswer()));
+            question.setHashedAnswer(passwordEncoder.encode(dto.getAnswer()));
             question.setUser(user);
 
             securityQuestionRepository.save(question);
@@ -98,7 +98,7 @@ public class SecurityQuestionService {
 
             SecurityQuestion question = new SecurityQuestion();
             question.setQuestion(dto.getQuestion());
-            question.setAnswer(dto.getAnswer());
+            question.setHashedAnswer(dto.getAnswer());
             question.setUser(user);
 
             securityQuestionRepository.save(question);

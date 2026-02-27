@@ -1,4 +1,5 @@
 package com.RevPasswordManager.entities;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -11,7 +12,8 @@ public class SecurityQuestion {
     private Long id;
 
     private String question;
-    private String answer;
+
+    private String hashedAnswer;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

@@ -1,7 +1,6 @@
 package com.RevPasswordManager.controller;
 
 import com.RevPasswordManager.dto.*;
-import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.service.AuthService;
 import com.RevPasswordManager.service.PasswordService;
 import jakarta.validation.Valid;
@@ -26,6 +25,7 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(request));
     }
 
+    // ================= LOGIN =================
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request) {
@@ -33,92 +33,64 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-
-    // ================= VERIFY OTP =================
-    @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOtp(
+    // ================= VERIFY 2FA =================
+    @PostMapping("/verify-2fa")
+    public ResponseEntity<AuthResponse> verify2FA(
             @RequestBody OtpRequest request) {
 
-        return ResponseEntity.ok(authService.verifyOtp(request));
+        return ResponseEntity.ok(authService.verify2FA(request));
     }
-    // ================= UPDATE PROFILE =================
-    @PutMapping("/update-profile")
-    public ResponseEntity<String> updateProfile(
-            @RequestBody UpdateProfileRequest request,
-            Authentication authentication) {
+
+    // ================= ENABLE 2FA =================
+    @PostMapping("/enable-2fa")
+    public ResponseEntity<?> enable2FA(Authentication authentication) {
 
         return ResponseEntity.ok(
-                authService.updateProfile(authentication.getName(), request)
+                authService.enable2FA(authentication.getName())
         );
     }
 
-    // ================= CHANGE MASTER PASSWORD =================
-    @PutMapping("/change-master-password")
-    public ResponseEntity<?> changeMasterPassword(
-            @RequestBody ChangeMasterPasswordRequest request,
-            Authentication authentication) {
+    // ================= 2FA STATUS =================
+    @GetMapping("/2fa-status")
+    public ResponseEntity<Boolean> get2FAStatus(Authentication authentication) {
 
         return ResponseEntity.ok(
-                passwordService.changeMasterPassword(
-                        authentication.getName(),
-                        request.getOldPassword(),
-                        request.getNewPassword()
-                )
+                authService.get2FAStatus(authentication.getName())
         );
     }
 
-    // ================= TOGGLE 2FA =================
-    @PutMapping("/toggle-2fa")
-    public ResponseEntity<?> toggle2FA(Authentication authentication) {
+    // ================= CONFIRM 2FA =================
+    @PostMapping("/confirm-2fa")
+    public ResponseEntity<?> confirm2FA(
+            Authentication authentication,
+            @RequestParam String code) {
 
         return ResponseEntity.ok(
-                authService.toggle2FA(authentication.getName())
+                authService.confirm2FA(authentication.getName(), code)
         );
     }
 
+    // ================= DISABLE 2FA =================
+    @PostMapping("/disable-2fa")
+    public ResponseEntity<?> disable2FA(
+            Authentication authentication,
+            @RequestParam String code) {
 
+        return ResponseEntity.ok(
+                authService.disable2FA(authentication.getName(), code)
+        );
+    }
+
+    // ================= LOGOUT =================
     @PostMapping("/logout")
     public String logout(
             @RequestHeader("Authorization") String header) {
 
         String token = header.substring(7);
-
         authService.blacklistToken(token);
 
         return "Logged out successfully";
     }
 
-    // ================= VERIFY SECURITY ANSWER =================
-    @PostMapping("/verify-security-answer")
-    public ResponseEntity<?> verifySecurityAnswer(
-            @RequestBody VerifySecurityAnswerRequest request) {
-
-        return ResponseEntity.ok(
-                authService.verifySecurityAnswer(request)
-        );
-    }
-
-    // ================= RESET MASTER PASSWORD =================
-    @PutMapping("/reset-master-password")
-    public ResponseEntity<?> resetMasterPassword(
-            @RequestBody ResetMasterPasswordRequest request) {
-
-        return ResponseEntity.ok(
-                authService.resetMasterPassword(request)
-        );
-    }
-
-    @PutMapping("/security-questions")
-    public ResponseEntity<?> updateSecurityQuestions(
-            @RequestBody SecurityQuestionRequest request,
-            Authentication authentication) {
-
-        return ResponseEntity.ok(
-                authService.updateSecurityQuestions(
-                        authentication.getName(),
-                        request
-                )
-        );
-    }
 
 }

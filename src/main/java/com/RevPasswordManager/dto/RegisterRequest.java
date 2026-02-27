@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import java.util.List;
+import jakarta.validation.constraints.NotEmpty;
 
 @Data
 public class RegisterRequest {
@@ -23,5 +24,6 @@ public class RegisterRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String masterPassword;
 
-    private List<QuestionAnswer> securityQuestions;
+    @NotEmpty(message = "Minimum 3 security answers required")
+    private List<String> securityAnswers;
 }

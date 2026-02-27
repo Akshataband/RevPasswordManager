@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/vault")
 @RequiredArgsConstructor
@@ -28,13 +30,18 @@ public class VaultController {
 
     // ================= ADD PASSWORD =================
     @PostMapping
-    public String addPassword(
+    public ResponseEntity<?> addPassword(
             @Valid @RequestBody CreatePasswordRequest request,
             Authentication authentication) {
 
-        return passwordService.addPassword(
-                request,
-                authentication.getName()
+        return ResponseEntity.ok(
+                Map.of(
+                        "message",
+                        passwordService.addPassword(
+                                request,
+                                authentication.getName()
+                        )
+                )
         );
     }
 
@@ -50,7 +57,9 @@ public class VaultController {
                 request.getMasterPassword(),
                 authentication.getName());
 
-        return ResponseEntity.ok(password);
+        return ResponseEntity.ok(
+                Map.of("password", password)
+        );
     }
 
     // ================= SEARCH =================
@@ -162,6 +171,19 @@ public class VaultController {
         return ResponseEntity.ok(
                 passwordService.saveGeneratedPassword(
                         request,
+                        authentication.getName()
+                )
+        );
+    }
+    // ================= GET BY ID =================
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                passwordService.getById(
+                        id,
                         authentication.getName()
                 )
         );

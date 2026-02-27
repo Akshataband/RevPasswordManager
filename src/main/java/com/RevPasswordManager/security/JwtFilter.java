@@ -29,8 +29,13 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 🔥 Skip authentication endpoints completely
-        if (request.getServletPath().startsWith("/auth")) {
+        String path = request.getServletPath();
+
+        // Skip only public endpoints
+        if (path.equals("/auth/login") ||
+                path.equals("/auth/register") ||
+                path.equals("/auth/verify-2fa")) {
+
             filterChain.doFilter(request, response);
             return;
         }
@@ -42,14 +47,13 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        try {
+        String token = authHeader.substring(7);
 
-            String token = authHeader.substring(7);
+        try {
 
             // Check blacklist
             if (blacklistedTokenRepository.existsByToken(token)) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token is blacklisted");
+                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -81,8 +85,8 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            // DO NOT block request here
+            // Just continue without authentication
         }
 
         filterChain.doFilter(request, response);

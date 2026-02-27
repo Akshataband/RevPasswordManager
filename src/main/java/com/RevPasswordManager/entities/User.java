@@ -29,8 +29,6 @@ public class User {
     @Column(nullable = false, length = 100)
     private String name;
 
-
-    private boolean twoFactorEnabled;
     private boolean accountLocked;
     private int failedAttempts;
 
@@ -40,11 +38,9 @@ public class User {
     private LocalDateTime updatedAt;
 
     private boolean recoveryVerified;
+
+    private boolean twoFactorEnabled;
     private String twoFactorSecret;
-
-    private String otp;
-
-    private LocalDateTime otpExpiry;
 
     @Enumerated(EnumType.STRING)
     private Role role;
