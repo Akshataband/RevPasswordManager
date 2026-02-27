@@ -7,7 +7,7 @@ It provides encrypted password storage, JWT authentication, 2FA security, encryp
 🚀 Tech Stack
 Backend
 
-Java 17+
+Java 21
 
 Spring Boot
 
