@@ -205,11 +205,3 @@ Stateless security implementation
 
 Advanced password management features
 
-👩‍💻 Author
-
-Akshata Hemraj Band
-Full-Stack Java Developer
-
-If you want, I can now:
-
-Make a short
