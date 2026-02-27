@@ -42,9 +42,9 @@ public class AuthController {
     }
 
     // ================= ENABLE 2FA =================
+    // ENABLE
     @PostMapping("/enable-2fa")
     public ResponseEntity<?> enable2FA(Authentication authentication) {
-
         return ResponseEntity.ok(
                 authService.enable2FA(authentication.getName())
         );
@@ -62,8 +62,8 @@ public class AuthController {
     // ================= CONFIRM 2FA =================
     @PostMapping("/confirm-2fa")
     public ResponseEntity<?> confirm2FA(
-            Authentication authentication,
-            @RequestParam String code) {
+            @RequestParam String code,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 authService.confirm2FA(authentication.getName(), code)

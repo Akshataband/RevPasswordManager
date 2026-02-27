@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -112,20 +113,30 @@ public class AuthService {
     }
 
     // ================= ENABLE 2FA =================
-    public String enable2FA(String username) {
+    public Map<String, String> enable2FA(String username) {
+
+        System.out.println("Enable 2FA called for: " + username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (user.isTwoFactorEnabled())
-            throw new CustomException("2FA already enabled");
+        System.out.println("User found");
 
         String secret = twoFactorService.generateSecret();
+
+        System.out.println("Secret generated");
 
         user.setTwoFactorSecret(secret);
         userRepository.save(user);
 
-        return secret; // frontend generates QR
+        System.out.println("Secret saved");
+
+        String qrUrl = twoFactorService.generateQrUrl(secret, username);
+
+        return Map.of(
+                "secret", secret,
+                "qr", qrUrl
+        );
     }
 
     // ================= 2FA STATUS =================
@@ -141,13 +152,14 @@ public class AuthService {
     public String confirm2FA(String username, String code) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
+                .orElseThrow();
 
         boolean valid = twoFactorService
                 .verifyCode(user.getTwoFactorSecret(), code);
 
-        if (!valid)
-            throw new CustomException("Invalid code");
+        if (!valid) {
+            throw new RuntimeException("Invalid OTP");
+        }
 
         user.setTwoFactorEnabled(true);
         userRepository.save(user);
@@ -161,19 +173,24 @@ public class AuthService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new CustomException("User not found"));
 
+        if (!user.isTwoFactorEnabled()) {
+            throw new CustomException("2FA is not enabled");
+        }
+
         boolean valid = twoFactorService
                 .verifyCode(user.getTwoFactorSecret(), code);
 
-        if (!valid)
-            throw new CustomException("Invalid code");
+        if (!valid) {
+            throw new CustomException("Invalid OTP");
+        }
+
 
         user.setTwoFactorEnabled(false);
-        user.setTwoFactorSecret(null);
+        user.setTwoFactorSecret(null);   // optional but recommended
         userRepository.save(user);
 
         return "2FA disabled successfully";
     }
-
     // ================= LOGOUT =================
     public void blacklistToken(String token) {
 

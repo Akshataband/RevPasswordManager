@@ -40,6 +40,7 @@ public class User {
     private boolean recoveryVerified;
 
     private boolean twoFactorEnabled;
+    @Column(name = "two_factor_secret")
     private String twoFactorSecret;
 
     @Enumerated(EnumType.STRING)

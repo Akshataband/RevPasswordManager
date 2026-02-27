@@ -85,8 +85,9 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
-            // DO NOT block request here
-            // Just continue without authentication
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+
         }
 
         filterChain.doFilter(request, response);

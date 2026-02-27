@@ -16,7 +16,7 @@ public class JwtService {
     private static final String SECRET =
             "mySuperSecureSecretKeyForPasswordManagerApplication12345";
 
-    private static final long EXPIRATION = 1000 * 60 * 15; // 15 minutes
+    private static final long EXPIRATION = 1000 * 60 * 60 * 5; // 5 hours
 
     private Key getSignKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
