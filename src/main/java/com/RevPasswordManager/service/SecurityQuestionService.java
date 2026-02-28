@@ -108,4 +108,24 @@ public class SecurityQuestionService {
 
         return "Security questions updated successfully";
     }
+
+    public void verifySecurityAnswers(String username, Map<String, String> answers) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        List<SecurityQuestion> questions =
+                securityQuestionRepository.findByUserId(user.getId());
+
+        for (SecurityQuestion q : questions) {
+
+            String providedAnswer = answers.get(q.getQuestion());
+
+            if (providedAnswer == null ||
+                    !passwordEncoder.matches(providedAnswer, q.getAnswer())) {
+
+                throw new CustomException("Incorrect security answers");
+            }
+        }
+    }
 }

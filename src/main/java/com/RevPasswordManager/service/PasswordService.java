@@ -472,29 +472,6 @@ public String importBackup(String username,
         return "Password updated successfully";
     }
 
-    public String changeMasterPassword(String username,
-                                       String oldPassword,
-                                       String newPassword) {
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        if (user.isAccountLocked()) {
-            throw new CustomException("Account is locked");
-        }
-
-        if (!passwordEncoder.matches(oldPassword, user.getMasterPassword())) {
-            throw new CustomException("Old master password is incorrect");
-        }
-
-        user.setMasterPassword(passwordEncoder.encode(newPassword));
-        user.setUpdatedAt(java.time.LocalDateTime.now());
-
-        userRepository.save(user);
-
-        return "Master password changed successfully";
-    }
-
     private boolean isWeak(String encryptedPassword) {
 
         // Since encrypted, we cannot check real strength here

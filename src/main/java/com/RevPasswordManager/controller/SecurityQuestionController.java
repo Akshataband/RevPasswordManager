@@ -37,4 +37,6 @@ public class SecurityQuestionController {
 
         return service.updateQuestions(request);
     }
+
+
 }

@@ -1,13 +1,18 @@
 package com.RevPasswordManager.controller;
 
 import com.RevPasswordManager.dto.*;
+import com.RevPasswordManager.repository.UserRepository;
 import com.RevPasswordManager.service.AuthService;
 import com.RevPasswordManager.service.PasswordService;
+import com.RevPasswordManager.service.SecurityQuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final PasswordService passwordService;
+    private final SecurityQuestionService securityQuestionService;
 
     // ================= REGISTER =================
     @PostMapping("/register")
@@ -98,6 +103,39 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 authService.getCurrentUser(authentication.getName())
+        );
+    }
+
+    @PutMapping("/change-master-password")
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangeMasterPasswordRequest request,
+            Authentication authentication) {
+
+        String username = authentication.getName();
+
+        return ResponseEntity.ok(
+                authService.changeMasterPassword(
+                        username,
+                        request.getOldPassword(),
+                        request.getNewPassword()
+                )
+        );
+    }
+
+    @GetMapping("/security-questions/{username}")
+    public ResponseEntity<List<String>> getQuestions(
+            @PathVariable String username) {
+
+        return ResponseEntity.ok(
+                authService.getSecurityQuestions(username)
+        );
+    }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(
+            @RequestBody ForgotPasswordRequest request) {
+
+        return ResponseEntity.ok(
+                authService.forgotPassword(request)
         );
     }
 

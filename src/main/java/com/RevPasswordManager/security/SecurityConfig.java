@@ -32,6 +32,7 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/verify-2fa",
                                 "/v3/api-docs/**",
+                                "/auth/forgot-password",
                                 "/swagger-ui/**"
                         ).permitAll()
                         .anyRequest().authenticated()

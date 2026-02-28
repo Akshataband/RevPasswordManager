@@ -5,6 +5,7 @@ import com.RevPasswordManager.entities.*;
 import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.*;
 import com.RevPasswordManager.security.JwtService;
+import com.RevPasswordManager.util.PasswordStrengthUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -211,5 +212,129 @@ public class AuthService {
                 .phoneNumber(user.getPhoneNumber())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+    public String changeMasterPassword(String username,
+                                       String oldPassword,
+                                       String newPassword) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        if (user.isAccountLocked()) {
+            throw new CustomException("Account is locked");
+        }
+
+        // 1️⃣ Check old password
+        if (!passwordEncoder.matches(oldPassword, user.getMasterPassword())) {
+            throw new CustomException("Current password is incorrect");
+        }
+
+        // 2️⃣ Check new password strength
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(newPassword);
+
+        if (strength == PasswordStrengthUtil.Strength.WEAK) {
+            throw new CustomException("New password is too weak");
+        }
+
+        // 3️⃣ Prevent same password reuse
+        if (passwordEncoder.matches(newPassword, user.getMasterPassword())) {
+            throw new CustomException("New password cannot be same as old password");
+        }
+
+        // 4️⃣ Encode and save
+        user.setMasterPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Master password changed successfully";
+    }
+
+    public String resetMasterPasswordWithOtp(
+            String username,
+            String newPassword,
+            String otp) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        // 1️⃣ Verify OTP
+        boolean valid = twoFactorService
+                .verifyCode(user.getTwoFactorSecret(), otp);
+
+        if (!valid) {
+            throw new CustomException("Invalid OTP");
+        }
+
+        // 2️⃣ Check strength
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(newPassword);
+
+        if (strength == PasswordStrengthUtil.Strength.WEAK) {
+            throw new CustomException("Password too weak");
+        }
+
+        // 3️⃣ Prevent reuse
+        if (passwordEncoder.matches(newPassword, user.getMasterPassword())) {
+            throw new CustomException("Cannot reuse old password");
+        }
+
+        user.setMasterPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Password reset successful";
+    }
+
+    public List<String> getSecurityQuestions(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        List<SecurityQuestion> questions =
+                securityQuestionRepository.findByUserId(user.getId());
+
+        return questions.stream()
+                .map(SecurityQuestion::getQuestion)
+                .toList();
+    }
+    public String forgotPassword(ForgotPasswordRequest request) {
+
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        SecurityQuestion question =
+                securityQuestionRepository
+                        .findByUserIdAndQuestion(
+                                user.getId(),
+                                request.getQuestion()
+                        )
+                        .orElseThrow(() ->
+                                new CustomException("Invalid question"));
+
+        if (!passwordEncoder.matches(
+                request.getAnswer(),
+                question.getAnswer())) {
+
+            throw new CustomException("Incorrect answer");
+        }
+
+        PasswordStrengthUtil.Strength strength =
+                PasswordStrengthUtil.checkStrength(request.getNewPassword());
+
+        if (strength == PasswordStrengthUtil.Strength.WEAK) {
+            throw new CustomException("Password is too weak");
+        }
+
+        user.setMasterPassword(
+                passwordEncoder.encode(request.getNewPassword()));
+
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return "Password reset successful";
     }
 }
