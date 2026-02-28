@@ -88,17 +88,19 @@ public class SecurityQuestionService {
             throw new RuntimeException("Minimum 3 security questions required");
         }
 
-        // 🔥 Delete old questions
+        // Delete old questions
         securityQuestionRepository.deleteAll(
                 securityQuestionRepository.findByUserId(user.getId())
         );
 
-        // 🔥 Save new ones
+        // Save new hashed answers
         for (QuestionAnswer dto : request.getQuestions()) {
 
             SecurityQuestion question = new SecurityQuestion();
             question.setQuestion(dto.getQuestion());
-            question.setHashedAnswer(dto.getAnswer());
+            question.setHashedAnswer(
+                    passwordEncoder.encode(dto.getAnswer())
+            );
             question.setUser(user);
 
             securityQuestionRepository.save(question);

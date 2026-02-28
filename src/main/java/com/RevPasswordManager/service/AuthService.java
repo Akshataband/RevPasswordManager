@@ -115,30 +115,22 @@ public class AuthService {
     // ================= ENABLE 2FA =================
     public Map<String, String> enable2FA(String username) {
 
-        System.out.println("Enable 2FA called for: " + username);
-
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("User not found"));
 
-        System.out.println("User found");
+        if (user.getTwoFactorSecret() == null) {
+            String secret = twoFactorService.generateSecret();
+            user.setTwoFactorSecret(secret);
+            user.setTwoFactorEnabled(false);
+            userRepository.save(user);
+        }
 
-        String secret = twoFactorService.generateSecret();
+        String qr = "otpauth://totp/RevPasswordManager:" + user.getUsername()
+                + "?secret=" + user.getTwoFactorSecret()
+                + "&issuer=RevPasswordManager";
 
-        System.out.println("Secret generated");
-
-        user.setTwoFactorSecret(secret);
-        userRepository.save(user);
-
-        System.out.println("Secret saved");
-
-        String qrUrl = twoFactorService.generateQrUrl(secret, username);
-
-        return Map.of(
-                "secret", secret,
-                "qr", qrUrl
-        );
+        return Map.of("qr", qr);
     }
-
     // ================= 2FA STATUS =================
     public boolean get2FAStatus(String username) {
 
@@ -152,13 +144,21 @@ public class AuthService {
     public String confirm2FA(String username, String code) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow();
+                .orElseThrow(() -> new CustomException("User not found"));
 
-        boolean valid = twoFactorService
+        if (user.getTwoFactorSecret() == null) {
+            throw new CustomException("2FA not initialized");
+        }
+
+        System.out.println("Username: " + username);
+        System.out.println("Secret: " + user.getTwoFactorSecret());
+        System.out.println("OTP Received: " + code);
+
+        boolean isValid = twoFactorService
                 .verifyCode(user.getTwoFactorSecret(), code);
 
-        if (!valid) {
-            throw new RuntimeException("Invalid OTP");
+        if (!isValid) {
+            throw new CustomException("Invalid or expired OTP");
         }
 
         user.setTwoFactorEnabled(true);
@@ -197,5 +197,19 @@ public class AuthService {
         BlacklistedToken blacklisted = new BlacklistedToken();
         blacklisted.setToken(token);
         blacklistedTokenRepository.save(blacklisted);
+    }
+
+    public UserProfileResponse getCurrentUser(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new CustomException("User not found"));
+
+        return UserProfileResponse.builder()
+                .name(user.getName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .createdAt(user.getCreatedAt())
+                .build();
     }
 }

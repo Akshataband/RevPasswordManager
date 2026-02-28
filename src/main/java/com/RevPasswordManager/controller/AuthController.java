@@ -38,9 +38,11 @@ public class AuthController {
     public ResponseEntity<AuthResponse> verify2FA(
             @RequestBody OtpRequest request) {
 
+        System.out.println("USERNAME: " + request.getUsername());
+        System.out.println("OTP: " + request.getOtp());
+
         return ResponseEntity.ok(authService.verify2FA(request));
     }
-
     // ================= ENABLE 2FA =================
     // ENABLE
     @PostMapping("/enable-2fa")
@@ -62,8 +64,8 @@ public class AuthController {
     // ================= CONFIRM 2FA =================
     @PostMapping("/confirm-2fa")
     public ResponseEntity<?> confirm2FA(
-            @RequestParam String code,
-            Authentication authentication) {
+            Authentication authentication,
+            @RequestParam String code) {
 
         return ResponseEntity.ok(
                 authService.confirm2FA(authentication.getName(), code)
@@ -91,6 +93,12 @@ public class AuthController {
 
         return "Logged out successfully";
     }
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(Authentication authentication) {
 
+        return ResponseEntity.ok(
+                authService.getCurrentUser(authentication.getName())
+        );
+    }
 
 }
