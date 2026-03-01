@@ -31,10 +31,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // Skip only public endpoints
-        if (path.equals("/auth/login") ||
-                path.equals("/auth/register") ||
-                path.equals("/auth/verify-2fa")) {
+
+// Skip ALL public endpoints
+        if (path.startsWith("/auth/login") ||
+                path.startsWith("/auth/register") ||
+                path.startsWith("/auth/verify-2fa") ||
+                path.startsWith("/auth/forgot-password") ||
+                path.startsWith("/auth/security-questions")) {
 
             filterChain.doFilter(request, response);
             return;

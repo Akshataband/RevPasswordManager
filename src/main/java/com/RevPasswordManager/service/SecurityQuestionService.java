@@ -4,6 +4,7 @@ import com.RevPasswordManager.dto.QuestionAnswer;
 import com.RevPasswordManager.dto.UpdateSecurityQuestionsRequest;
 import com.RevPasswordManager.entities.SecurityQuestion;
 import com.RevPasswordManager.entities.User;
+import com.RevPasswordManager.exception.CustomException;
 import com.RevPasswordManager.repository.SecurityQuestionRepository;
 import com.RevPasswordManager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -122,10 +124,23 @@ public class SecurityQuestionService {
             String providedAnswer = answers.get(q.getQuestion());
 
             if (providedAnswer == null ||
-                    !passwordEncoder.matches(providedAnswer, q.getAnswer())) {
+                    !passwordEncoder.matches(providedAnswer, q.getHashedAnswer())) {
 
                 throw new CustomException("Incorrect security answers");
             }
         }
+    }
+
+    public List<String> getSecurityQuestions(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<SecurityQuestion> questions =
+                securityQuestionRepository.findByUserId(user.getId());
+
+        return questions.stream()
+                .map(SecurityQuestion::getQuestion)
+                .toList();
     }
 }

@@ -39,9 +39,9 @@ public class AuthService {
             throw new CustomException("Minimum 3 security answers required");
 
         User user = User.builder()
-                .username(request.getUsername())
-                .name(request.getName())
-                .email(request.getEmail())
+                .username(request.getUsername().trim())
+                .name(request.getName().trim())
+                .email(request.getEmail().trim())
                 .masterPassword(passwordEncoder.encode(request.getMasterPassword()))
                 .role(Role.USER)
                 .twoFactorEnabled(false)
@@ -51,12 +51,24 @@ public class AuthService {
 
         userRepository.save(user);
 
+        // ✅ SAVE SECURITY QUESTIONS
+        for (QuestionAnswer qa : request.getSecurityAnswers()) {
+
+            SecurityQuestion question = new SecurityQuestion();
+            question.setQuestion(qa.getQuestion().trim());
+            question.setHashedAnswer(
+                    passwordEncoder.encode(qa.getAnswer().trim())
+            );
+            question.setUser(user);
+
+            securityQuestionRepository.save(question);
+        }
+
         return AuthResponse.builder()
                 .message("Registration successful")
                 .otpRequired(false)
                 .build();
     }
-
     // ================= LOGIN =================
     public AuthResponse login(LoginRequest request) {
 
@@ -251,74 +263,46 @@ public class AuthService {
         return "Master password changed successfully";
     }
 
-    public String resetMasterPasswordWithOtp(
-            String username,
-            String newPassword,
-            String otp) {
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        // 1️⃣ Verify OTP
-        boolean valid = twoFactorService
-                .verifyCode(user.getTwoFactorSecret(), otp);
-
-        if (!valid) {
-            throw new CustomException("Invalid OTP");
-        }
-
-        // 2️⃣ Check strength
-        PasswordStrengthUtil.Strength strength =
-                PasswordStrengthUtil.checkStrength(newPassword);
-
-        if (strength == PasswordStrengthUtil.Strength.WEAK) {
-            throw new CustomException("Password too weak");
-        }
-
-        // 3️⃣ Prevent reuse
-        if (passwordEncoder.matches(newPassword, user.getMasterPassword())) {
-            throw new CustomException("Cannot reuse old password");
-        }
-
-        user.setMasterPassword(passwordEncoder.encode(newPassword));
-        user.setUpdatedAt(LocalDateTime.now());
-
-        userRepository.save(user);
-
-        return "Password reset successful";
-    }
-
-    public List<String> getSecurityQuestions(String username) {
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new CustomException("User not found"));
-
-        List<SecurityQuestion> questions =
-                securityQuestionRepository.findByUserId(user.getId());
-
-        return questions.stream()
-                .map(SecurityQuestion::getQuestion)
-                .toList();
-    }
     public String forgotPassword(ForgotPasswordRequest request) {
 
-        User user = userRepository.findByUsername(request.getUsername())
+        if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+            throw new CustomException("Username is required");
+        }
+
+        User user = userRepository.findByUsername(request.getUsername().trim())
                 .orElseThrow(() -> new CustomException("User not found"));
 
-        SecurityQuestion question =
-                securityQuestionRepository
-                        .findByUserIdAndQuestion(
-                                user.getId(),
-                                request.getQuestion()
-                        )
-                        .orElseThrow(() ->
-                                new CustomException("Invalid question"));
+        if (request.getQuestion() == null || request.getAnswer() == null) {
+            throw new CustomException("Security question and answer required");
+        }
 
+        // ✅ Use IgnoreCase + trim
+        SecurityQuestion question = securityQuestionRepository
+                .findByUserIdAndQuestionIgnoreCase(
+                        user.getId(),
+                        request.getQuestion().trim()
+                )
+                .orElseThrow(() -> new CustomException("Invalid security question"));
+
+        // ✅ Trim answer before checking
         if (!passwordEncoder.matches(
-                request.getAnswer(),
-                question.getAnswer())) {
+                request.getAnswer().trim(),
+                question.getHashedAnswer())) {
 
-            throw new CustomException("Incorrect answer");
+            throw new CustomException("Incorrect security answer");
+        }
+
+        if (request.getNewPassword() == null ||
+                request.getNewPassword().trim().isEmpty()) {
+
+            throw new CustomException("New password is required");
+        }
+
+        if (passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getMasterPassword())) {
+
+            throw new CustomException("New password cannot be same as old password");
         }
 
         PasswordStrengthUtil.Strength strength =
@@ -328,10 +312,8 @@ public class AuthService {
             throw new CustomException("Password is too weak");
         }
 
-        user.setMasterPassword(
-                passwordEncoder.encode(request.getNewPassword()));
-
-        user.setUpdatedAt(LocalDateTime.now());
+        user.setMasterPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(java.time.LocalDateTime.now());
 
         userRepository.save(user);
 

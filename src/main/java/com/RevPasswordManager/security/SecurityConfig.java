@@ -31,8 +31,9 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/auth/login",
                                 "/auth/verify-2fa",
-                                "/v3/api-docs/**",
                                 "/auth/forgot-password",
+                                "/auth/security-questions/**",
+                                "/v3/api-docs/**",
                                 "/swagger-ui/**"
                         ).permitAll()
                         .anyRequest().authenticated()

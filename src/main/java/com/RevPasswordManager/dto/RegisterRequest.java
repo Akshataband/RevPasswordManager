@@ -25,5 +25,5 @@ public class RegisterRequest {
     private String masterPassword;
 
     @NotEmpty(message = "Minimum 3 security answers required")
-    private List<String> securityAnswers;
+    private List<QuestionAnswer> securityAnswers;
 }

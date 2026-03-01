@@ -10,3 +10,4 @@ public class RevPasswordManagerApplication {
 		SpringApplication.run(RevPasswordManagerApplication.class, args);
 	}
 }
+

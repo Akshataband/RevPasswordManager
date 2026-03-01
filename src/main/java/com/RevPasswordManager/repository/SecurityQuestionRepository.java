@@ -13,4 +13,6 @@ public interface SecurityQuestionRepository extends JpaRepository<SecurityQuesti
     Optional<SecurityQuestion> findByUserIdAndQuestion(
             Long userId,
             String question);
+
+    Optional<SecurityQuestion> findByUserIdAndQuestionIgnoreCase(Long userId, String question);
 }

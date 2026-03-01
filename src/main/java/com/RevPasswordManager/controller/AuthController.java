@@ -127,7 +127,7 @@ public class AuthController {
             @PathVariable String username) {
 
         return ResponseEntity.ok(
-                authService.getSecurityQuestions(username)
+                securityQuestionService.getSecurityQuestions(username)
         );
     }
     @PostMapping("/forgot-password")
