@@ -1,207 +1,144 @@
-📘 RevPasswordManager – README
-🔐 RevPasswordManager
+RevPasswordManager Backend
+A secure Spring Boot REST API for managing encrypted password vaults.
+This project demonstrates a clean layered architecture using Controller, Service, and Repository patterns with Spring Security, JWT authentication, JPA/Hibernate, and MySQL.
 
-RevPasswordManager is a secure full-stack password management system built using Spring Boot (Backend) and Angular (Frontend).
-It provides encrypted password storage, JWT authentication, 2FA security, encrypted backup, and security audit features.
-
-🚀 Tech Stack
-Backend
-
+Tech Stack
 Java 21
-
 Spring Boot
-
+Spring Web MVC
 Spring Security
-
 JWT Authentication
-
-JPA / Hibernate
-
+Spring Data JPA
+Hibernate
 MySQL
-
 BCrypt Password Encoder
+Maven
 
-Frontend
+Features
 
-Angular (Standalone Components)
-
-TypeScript
-
-Angular Router
-
-HTTP Interceptors
-
-FormsModule / ReactiveForms
-
-🏗 Architecture
-
-The backend follows a layered architecture:
-
-Controller → Service → Repository → Database
-
-Security layer:
-
-Client → JwtFilter → SecurityContext → Controller
-
-Authentication is stateless (JWT-based).
-
-🔑 Features
-👤 Authentication
-
-User Registration
-
+Authentication
+User registration
 Login with JWT
-
-Account lock after failed attempts
-
 Password hashing using BCrypt
-
-🔐 Two-Factor Authentication (2FA)
-
-TOTP-based authentication
-
-QR code generation
-
-OTP verification
-
-Enable / Disable 2FA
-
-🔒 Vault Management
-
-Add Password
-
-Edit Password
-
-Delete Password
-
-View Password (requires master password)
-
-Favorite passwords
-
-Search, Filter, Pagination
-
-🛡 Security Features
-
-Master password verification
-
-JWT authentication
-
+Account lock after multiple failed login attempts
 Token blacklist on logout
 
+Two-Factor Authentication (2FA)
+TOTP-based verification
+QR code generation
+OTP validation
+Enable and disable 2FA
+
+Vault Management
+Add password entry
+Update password entry
+Delete password entry
+Get password by ID
+Get all passwords for a user
+Search passwords
+Filter and pagination support
+Mark and unmark favorite passwords
+Master password verification before viewing sensitive data
+
+Security Features
+Stateless JWT authentication
+Custom JwtFilter
+SecurityContext-based authorization
+Token blacklist validation
 Account locking mechanism
+Security question verification
+Password strength validation
 
-Security questions
-
-Password strength analysis
-
-💾 Encrypted Backup
-
-Export vault as encrypted .enc file
-
+Encrypted Backup
+Export vault as encrypted file
 Import encrypted backup
+Master password required for export and import
 
-Master password required for export/import
+Project Structure
 
-🔐 JWT Token Flow
+controller – Handles HTTP requests and returns responses
+service – Contains business logic and validation
+repository – Data access layer using Spring Data JPA
+entity – JPA entity definitions
+dto – Data transfer objects for request and response
+security – JWT filter, security configuration, authentication logic
+exception – Global exception handling and custom exceptions
+util – Utility classes (encryption, OTP, helpers)
 
-User logs in.
+The application follows a clean separation of concerns to keep the code secure, maintainable, and scalable.
 
-Backend validates credentials.
+Database Configuration
 
-JWT token is generated.
+The application uses MySQL. Update application.properties with your local database credentials.
 
-Token stored in browser localStorage.
+Example:
 
-Angular interceptor attaches token to every request.
+spring.datasource.url=jdbc:mysql://localhost:3306/revpasswordmanager
+spring.datasource.username=root
+spring.datasource.password=yourpassword
+spring.jpa.hibernate.ddl-auto=update
 
-JwtFilter validates token before controller execution.
+Make sure the database exists before starting the application.
 
-Logout adds token to blacklist table.
+Running the Application
 
-🗂 Database Design
+Clone the project and run:
 
-Main entities:
-
-users
-
-password_entries
-
-security_question
-
-verification_code
-
-blacklisted_token
-
-Relationships:
-
-One user → Many password entries
-
-One user → Many security questions
-
-One user → Many verification codes
-
-⚙️ How to Run the Project
-Backend
-git clone <backend-repo>
-cd backend
-mvn clean install
 mvn spring-boot:run
 
-Update application.properties with your MySQL credentials.
+Or build and run:
 
-Frontend
-cd frontend
-npm install
-ng serve
+mvn clean install
+java -jar target/revpasswordmanager-0.0.1-SNAPSHOT.jar
 
-App runs at:
-
-http://localhost:4200
-
-Backend runs at:
+The application runs on:
 
 http://localhost:8080
-🔒 Security Implementation Details
 
-Stateless JWT authentication
+API Base URL
 
-BCrypt password hashing
+/api
 
-Custom JwtFilter
+Main Endpoint Groups
 
-Blacklisted token validation
+Authentication
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/logout
 
-TOTP-based 2FA
+Two-Factor Authentication
+POST /api/2fa/enable
+POST /api/2fa/verify
+POST /api/2fa/disable
 
-Encrypted backup export
+Vault
+POST /api/passwords
+GET /api/passwords
+GET /api/passwords/{id}
+PUT /api/passwords/{id}
+DELETE /api/passwords/{id}
+GET /api/passwords/search
+GET /api/passwords/favorites
 
-📈 Future Improvements
+Backup
+POST /api/backup/export
+POST /api/backup/import
 
-Refresh token implementation
+Sample Request Body (Register)
 
-HttpOnly cookie-based token storage
+{
+"username": "akshata",
+"email": "akshata@example.com
+",
+"password": "StrongPassword@123"
+}
 
-Role-based authorization
+Notes
 
-Rate limiting
+Passwords are hashed using BCrypt before storing.
+JWT authentication is stateless and validated using a custom filter.
+Blacklisted tokens are stored in the database and validated on each request.
+Tables are auto-generated using ddl-auto=update.
+Relationships are mapped using JPA annotations.
 
-Redis token blacklist
-
-Docker containerization
-
-CI/CD pipeline
-
-🎯 Learning Outcomes
-
-This project demonstrates:
-
-Secure authentication design
-
-Full-stack integration
-
-Layered backend architecture
-
-Stateless security implementation
-
-Advanced password management features
-
+This backend can be extended further with refresh tokens, role-based authorization, Redis-based blacklist, rate limiting, Docker support, and CI/CD integration.
