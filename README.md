@@ -1,4 +1,5 @@
 RevPasswordManager Backend
+
 A secure Spring Boot REST API for managing encrypted password vaults.
 This project demonstrates a clean layered architecture using Controller, Service, and Repository patterns with Spring Security, JWT authentication, JPA/Hibernate, and MySQL.
 
