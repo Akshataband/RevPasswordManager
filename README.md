@@ -1,7 +1,9 @@
 # RevPasswordManager Backend
+Secure Spring Boot REST API for RevPasswordManager with JWT authentication, TOTP-based 2FA, encrypted password vault management, and backup support.
 
-A secure Spring Boot REST API for managing encrypted password vaults.  
-This backend provides authentication, JWT-based security, two-factor authentication (2FA), encrypted backup, and advanced password management features.
+Alternative shorter version:
+
+Spring Boot REST API with JWT security, 2FA, encrypted password storage, and vault management features.
 
 ---
 
