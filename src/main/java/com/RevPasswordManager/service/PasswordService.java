@@ -474,10 +474,17 @@ public String importBackup(String username,
 
     private boolean isWeak(String encryptedPassword) {
 
-        // Since encrypted, we cannot check real strength here
-        // For now assume short encrypted string = weak
-        return encryptedPassword.length() < 30;
+    try {
+
+        String decrypted = encryptionService.decrypt(encryptedPassword);
+
+        return PasswordStrengthUtil.checkStrength(decrypted)
+                == PasswordStrengthUtil.Strength.WEAK;
+
+    } catch (Exception e) {
+        return false;
     }
+}
 
     public String saveGeneratedPassword(
             SaveGeneratedPasswordRequest request,
